@@ -1,0 +1,14 @@
+SYSTEMATIC random
+ PROCESSES ttbar,other,signal
+  sb_2b_met0	   0.30
+  sb_3b_met0	   0.30
+  sb_4b_met0	   0.30
+  sb_2b_met1	   0.30
+  sb_2b_met1	   0.30
+  sb_2b_met1	   0.30
+  sig_2b_met0	   0.30
+  sig_3b_met0	   0.30
+  sig_4b_met0	   0.30
+  sig_2b_met1	   0.30
+  sig_2b_met1	   0.30
+  sig_2b_met1	   0.30
