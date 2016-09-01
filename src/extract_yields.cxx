@@ -78,16 +78,16 @@ int main(int argc, char *argv[]){
   if(toy_num >= 0) toy_ext = "_toy_" + to_string(toy_num);
   file_wspace = ChangeExtension(file_wspace, toy_ext+"_"+name_wspace+".root");
   if(fit_b != nullptr){
-    PrintDebug(*w, *fit_b, ChangeExtension(file_wspace, "_bkg_debug.tex"));
+    //PrintDebug(*w, *fit_b, ChangeExtension(file_wspace, "_bkg_debug.tex"));
     PrintTable(*w, *fit_b, ChangeExtension(file_wspace, "_bkg_table.tex"));
-    MakeYieldPlot(*w, *fit_b, ChangeExtension(file_wspace, "_bkg_plot.pdf"));
-    if(!Contains(file_wspace, "nokappa")) MakeCorrectionPlot(*w, *fit_b, ChangeExtension(file_wspace, "_bkg_correction.pdf"));
+    //MakeYieldPlot(*w, *fit_b, ChangeExtension(file_wspace, "_bkg_plot.pdf"));
+    //if(!Contains(file_wspace, "nokappa")) MakeCorrectionPlot(*w, *fit_b, ChangeExtension(file_wspace, "_bkg_correction.pdf"));
   }
   if(fit_s != nullptr){
-    PrintDebug(*w, *fit_s, ChangeExtension(file_wspace, "_sig_debug.tex"));
+    //PrintDebug(*w, *fit_s, ChangeExtension(file_wspace, "_sig_debug.tex"));
     PrintTable(*w, *fit_s, ChangeExtension(file_wspace, "_sig_table.tex"));
-    MakeYieldPlot(*w, *fit_s, ChangeExtension(file_wspace, "_sig_plot.pdf"));
-    if(!Contains(file_wspace, "nokappa")) MakeCorrectionPlot(*w, *fit_s, ChangeExtension(file_wspace, "_sig_correction.pdf"));
+    //MakeYieldPlot(*w, *fit_s, ChangeExtension(file_wspace, "_sig_plot.pdf"));
+    //if(!Contains(file_wspace, "nokappa")) MakeCorrectionPlot(*w, *fit_s, ChangeExtension(file_wspace, "_sig_correction.pdf"));
   }
 
   w_file.Close();
@@ -215,7 +215,7 @@ void PrintTable(RooWorkspace &w,
   out << "\\begin{tabular}{l ";
   for(size_t i = 0; i < ncols-1; ++i) out << "r";
   out << "}\n";
-  out << "\\hline\\hline\n";
+  out << "\\hline\\hline\n\n";
   out << "Bin & ";
   for(const auto &prc_name: prc_names){
     out << prc_name << " & ";
@@ -228,7 +228,7 @@ void PrintTable(RooWorkspace &w,
   // out << "\\hline\n";
   for(const auto &bin_name: bin_names){
     if(Contains(bin_name, "r1")) {
-      out << "\\hline\\hline"<<endl;
+      out << "\n\\hline\\hline"<<endl;
       if(Contains(bin_name, "lowmet")) out<<"\\multicolumn{"<<ncols<<"}{c}{$200<\\text{MET}\\leq 400$} \\\\ \\hline"<<endl;
       if(Contains(bin_name, "highmet")) out<<"\\multicolumn{"<<ncols<<"}{c}{$\\text{MET}>400$} \\\\ \\hline"<<endl;
     }
@@ -266,7 +266,7 @@ void PrintTable(RooWorkspace &w,
     out << "\\\\\n";
     if(Contains(bin_name, "r3") || Contains(bin_name, "d3")) out << "\\hline"<<endl;
   }
-  out << "\\hline\\hline\n";
+  out << "\n\\hline\\hline\n";
   out << "\\end{tabular}\n";
   out << "}\n";
   out << "\\end{table}\n";
@@ -707,7 +707,7 @@ vector<string> GetBinNames(const RooWorkspace &w){
     if(arg == nullptr) continue;
     string name = arg->GetName();
     if(name.substr(0,9) != "nexp_BLK_") continue;
-    if(!Contains(name, "4")  && Contains(file_wspace, "nor4")) continue;
+    if((!Contains(name, "sig_3b") || !Contains(name, "sig_4b")) && Contains(file_wspace, "nor4")) continue;
     string bin_name = name.substr(5);
     Append(names, bin_name);
   }

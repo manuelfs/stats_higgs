@@ -565,7 +565,7 @@ void WorkspaceGenerator::AddData(const Block &block){
       ostringstream oss;
       oss << "nobs_BLK_" << block.Name()
           << "_BIN_" << bin.Name() << flush;
-      if(use_r4_ || !Contains(bin.Name(), "4")){
+      if(use_r4_ || (!Contains(bin.Name(), "sig_3b") && !Contains(bin.Name(), "sig_4b")) ){
         Append(observables_, oss.str());
       }
       oss << "[" << gps.Yield() << "]" << flush;
@@ -935,7 +935,7 @@ void WorkspaceGenerator::AddPdfs(const Block &block){
       string null_name = "pdf_null"+bb_name;
       string alt_name = "pdf_alt"+bb_name;
       w_.factory(("sum::nexp"+bb_name+"(nbkg"+bb_name+",nsig"+bb_name+")").c_str());
-      if(use_r4_ || !Contains(bb_name, "4")){
+      if(use_r4_ || (!Contains(bb_name, "sig_3b") && !Contains(bb_name, "sig_4b"))){
         null_list += null_name;
         alt_list += alt_name;
         w_.factory(("RooPoisson::pdf_null"+bb_name+"(nobs"+bb_name+",nbkg"+bb_name+")").c_str());

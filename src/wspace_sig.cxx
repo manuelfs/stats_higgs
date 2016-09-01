@@ -28,16 +28,16 @@
 using namespace std;
 
 namespace{
-  double lumi = 20;
+  double lumi = 40;
   double sig_strength = 0.;
   BlindLevel blind_level = BlindLevel::blinded;
   bool no_kappa = false;
   bool do_syst = true;
   bool use_r4 = true;
   unsigned n_toys = 0;
-  string outfolder = "out/";
-  string nb_bins("TML");
-  string sigfile = "/net/cms27/cms27r0/babymaker/2016_04_29/mc/merged_higloose/*TChiHH_mChi-400*.root";
+  string outfolder = "";
+  string nb_bins("TTML");
+  string sigfile = "/net/cms2/cms2r0/babymaker/babies/2016_08_10/TChiHH/merged_higmc_higloose/*TChiHH_mGluino-1000_*.root";
 }
 
 int main(int argc, char *argv[]){
@@ -52,34 +52,38 @@ int main(int argc, char *argv[]){
   string hostname = execute("echo $HOSTNAME");
   string basefolder("/net/cms2/cms2r0/babymaker/");
   if(Contains(hostname, "lxplus")) basefolder = "/afs/cern.ch/user/m/manuelf/work/";
-  string foldermc(basefolder+"babies/2016_04_29/mc/merged_higloose/"); 
-  string folderdata(basefolder+"babies/2016_04_29/data/merged_abcd/"); // Pointing to a random folder
+
+  string foldermc(basefolder+"babies/2016_08_10/mc/merged_higmc_higloose/"); 
+  string folderdata(basefolder+"babies/2016_04_29/data/merged_abcd/"); // Pointing to a random folder for now
 
   
   //Define processes. Try to minimize splitting
   string stitch_cuts("stitch&&pass");
   Process ttbar{"ttbar", {
-      {foldermc+"/*_TTJets*Lept*.root/tree"},
-	{foldermc+"/*_TTJets*HT*.root/tree"}
+      {foldermc+"/*_TTJets*.root/tree"}
     },stitch_cuts};
 
   Process other{"other", {
-      {foldermc+"/*DYJetsToLL*.root/tree"},
-	{foldermc+"/*_WWTo*.root/tree"},
-	  {foldermc+"/*_TTTT*.root/tree"},
-	    {foldermc+"/*_WZ*.root/tree"},
-	      {foldermc+"/*QCD_HT*.root/tree"},
-		{foldermc+"/*_WJetsToLNu*.root/tree"},
-		  {foldermc+"/*_TTWJets*.root/tree"},
-		    {foldermc+"/*_TTZTo*.root/tree"},
-		      {foldermc+"/*_ST_*.root/tree"},
-			{foldermc+"/*_TTGJets*.root/tree"},
-			  {foldermc+"/*ttHJetTobb*.root/tree"}
+      {foldermc+"/*_WJetsToLNu*.root/tree"},
+	{foldermc+"/*_TTW*.root/tree"},
+	  {foldermc+"/*_TTZ*.root/tree"},
+	    {foldermc+"/*DYJetsToLL*.root/tree"},
+	      {foldermc+"/*_ZJet*.root/tree"},
+		{foldermc+"/*ttHJetTobb*.root/tree"},
+		  {foldermc+"/*_TTGJets*.root/tree"},
+		    {foldermc+"/*_TTTT*.root/tree"},
+		      {foldermc+"/*_WH_HToBB*.root/tree"},
+			{foldermc+"/*_ZH_HToBB*.root/tree"},
+			  {foldermc+"/*_WWTo*.root/tree"},
+			    {foldermc+"/*_WZ*.root/tree"},
+			      {foldermc+"/*_ZZ*.root/tree"},
+				{foldermc+"/*QCD_HT*0_Tune*.root/tree"},
+				  {foldermc+"/*QCD_HT*Inf_Tune*.root/tree"},
+				    {foldermc+"/*_ST_*.root/tree"}
     },stitch_cuts};
   Process signal{"signal", {
-      //{sigfile+"/tree"}
-      {foldermc+"/*TChiHH_mChi-400*.root/tree"}
-    },"pass", false, true};
+      {sigfile+"/tree"}
+    },"1", false, true};
 
   string data_cuts("(trig[4]||trig[8])&&pass");
 
@@ -91,20 +95,20 @@ int main(int argc, char *argv[]){
   set<Process> backgrounds{ttbar, other};
 
   //Baseline selection applied to all bins and processes
-  Cut baseline{"hig_drmax<2.2&&ntks==0"}; //njets>=4&&njets<=5&&!low_dphi&&nvleps==0 already in the skim
+  Cut baseline{"hig_drmax<2.2&&ntks==0&&njets>=4&&njets<=5&&!low_dphi&&nvleps==0"}; 
 
   string cut2b="nbt==2&&nbm==2", cut3b="nbt>=2&&nbm==3&&nbl==3", cut4b="nbt>=2&&nbm>=3&&nbl>=4";
-  if(nb_bins=="TTL"){
+  if(nb_bins=="TTTL"){
     cut2b = "nbt==2";
     cut3b = "nbt==3&&nbl==3";
     cut4b = "nbt>=3&&nbl>=4";
   }
-  if(nb_bins=="MMM"){
+  if(nb_bins=="MMMM"){
     cut2b = "nbm==2";
     cut3b = "nbm==3";
     cut4b = "nbm>=4";
   }
-  if(nb_bins=="TMM"){
+  if(nb_bins=="TTMM"){
     cut2b = "nbt==2&&nbm==2";
     cut3b = "nbm==3";
     cut4b = "nbm>=4";
@@ -136,12 +140,17 @@ int main(int argc, char *argv[]){
 	      {sig_2b_met1, sig_3b_met1, sig_4b_met1}}}
   };
 
+  //// Parsing the gluino and LSP masses
+  int mglu, mlsp;
+  parseMasses(sigfile, mglu, mlsp);
+  string glu_lsp("mGluino-"+to_string(mglu)+"_mLSP-"+to_string(mlsp));
+
   //// Creating workspaces
   Cut *pbaseline(&baseline);
   set<Block> *pblocks(&blocks_abcd);
 
   string sysfolder = "txt/systematics/";
-  string sysfile(sysfolder+"/sys_SMS-TChiHH_4b_mChi-400.txt");
+  string sysfile(sysfolder+"/sys_TChiHH_flat20percent.txt");
   
   // If systematic file does not exist, complain
   struct stat buffer;   
@@ -152,10 +161,15 @@ int main(int argc, char *argv[]){
   }
 
   gSystem->mkdir(outfolder.c_str(), kTRUE);
-  string sig_s = "_sig"+to_string(sig_strength);
-  ReplaceAll(sig_s, ".000000","");
-  string outname(outfolder+"/wspace_SMS-TChiHH_4b_mChi-400_nb"+nb_bins+sig_s+".root");
-  if(!use_r4) ReplaceAll(outname, "wspace_","wspace_nor4_");
+
+  int digits=0;
+  if(lumi-floor(lumi)>0) digits = 1;
+  TString lumi_s = "_lumi"+RoundNumber(lumi,digits);  lumi_s.ReplaceAll(".","p");
+  digits=0;
+  if(sig_strength-floor(sig_strength)>0) digits = 1;
+  TString sig_s = "_sig"+RoundNumber(sig_strength,digits); sig_s.ReplaceAll(".","p");
+  TString outname(outfolder+"wspace_TChiHH_"+glu_lsp+"_xsecNom_nb"+nb_bins+lumi_s+sig_s+".root");
+  if(!use_r4) outname.ReplaceAll("wspace_","wspace_nor4_");
 
   float rmax = 20.;
   WorkspaceGenerator wgNom(*pbaseline, *pblocks, backgrounds, signal, data, sysfile, use_r4, sig_strength, 1.);
@@ -165,7 +179,7 @@ int main(int argc, char *argv[]){
   wgNom.SetLuminosity(lumi);
   wgNom.SetDoSystematics(do_syst);
   wgNom.AddToys(n_toys);
-  wgNom.WriteToFile(outname);
+  wgNom.WriteToFile(outname.Data());
 
   time(&endtime); 
   cout<<"Finding workspaces took "<<fixed<<setprecision(0)<<difftime(endtime, begtime)<<" seconds"<<endl<<endl;  

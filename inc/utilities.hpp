@@ -18,6 +18,7 @@
 bool Contains(const std::string &str, const std::string &pat);
 bool StartsWith(const std::string &str, const std::string &pat);
 
+TString RoundNumber(double num, int decimals, double denom=1.);
 void ReplaceAll(std::string &str, const std::string &orig, const std::string &rep);
 
 void RmCutOn(std::string &cut, const std::string &orig, const std::string &rep="1");
