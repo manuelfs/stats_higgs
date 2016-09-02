@@ -17,7 +17,7 @@ Obtaining limits
 Generate a workspace with the likelihood function. The signal file is specified with the `-f` option,
 the luminosity with `-l`, and the signal strength with `-g`
 
-    ./run/./run/wspace_sig.exe -f <signal_file> -l <lumi> -g <sig_strength
+    ../run/wspace_sig.exe -f <signal_file> -l <lumi> -g <sig_strength
 
 Find significance and limit running `combine`
 

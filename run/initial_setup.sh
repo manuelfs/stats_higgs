@@ -3,6 +3,7 @@
 orig_dir=$(pwd)
 mkdir -p ~/cmssw
 cd ~/cmssw
+export SCRAM_ARCH=slc6_amd64_gcc491 ;
 scramv1 project CMSSW CMSSW_7_4_14 || mkdir -p ~/cmssw/CMSSW_7_4_14/src
 scramv1 project CMSSW CMSSW_7_1_5 || mkdir -p ~/cmssw/CMSSW_7_1_5/src
 cd ~/cmssw/CMSSW_7_1_5/src
