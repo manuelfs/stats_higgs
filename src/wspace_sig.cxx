@@ -23,6 +23,7 @@
 #include "systematic.hpp"
 #include "cut.hpp"
 #include "workspace_generator.hpp"
+#include "cross_sections.hpp"
 
 
 using namespace std;
@@ -53,7 +54,7 @@ int main(int argc, char *argv[]){
   string basefolder("/net/cms2/cms2r0/babymaker/");
   if(Contains(hostname, "lxplus")) basefolder = "/afs/cern.ch/user/m/manuelf/work/";
 
-  string foldermc(basefolder+"babies/2016_08_10/mc/merged_higmc_higloose/"); 
+  string foldermc(basefolder+"babies/2016_08_10/mc/merged_higmc_higtight/"); 
   string folderdata(basefolder+"babies/2016_04_29/data/merged_abcd/"); // Pointing to a random folder for now
 
   
@@ -113,7 +114,7 @@ int main(int argc, char *argv[]){
     cut3b = "nbm==3";
     cut4b = "nbm>=4";
   }
-  string cutme0="&&met>250&&met<=300", cutmet1="&&met>300";
+  string cutme0="&&met>200&&met<=300", cutmet1="&&met>300";
   string cutsig="hig_am>100&&hig_am<140&&hig_dm<40", cutsbd="!("+cutsig+")";
 
   Bin sbd_2b_met0{"sbd_2b_met0", cut2b+"&&"+cutsbd+cutme0, blind_level>=BlindLevel::blinded};
@@ -160,6 +161,10 @@ int main(int argc, char *argv[]){
     cout<<sysfile<<" instead"<<endl<<endl;
   }
 
+  // Cross sections
+  float xsec, xsec_unc;
+  xsec::higgsinoCrossSection(mglu, xsec, xsec_unc);
+
   gSystem->mkdir(outfolder.c_str(), kTRUE);
 
   int digits=0;
@@ -180,6 +185,26 @@ int main(int argc, char *argv[]){
   wgNom.SetDoSystematics(do_syst);
   wgNom.AddToys(n_toys);
   wgNom.WriteToFile(outname.Data());
+
+  outname.ReplaceAll("Nom", "Up");
+  WorkspaceGenerator wgUp(*pbaseline, *pblocks, backgrounds, signal, data, sysfile, use_r4, sig_strength, 1+xsec_unc);
+  wgUp.SetRMax(rmax);
+  wgUp.SetKappaCorrected(!no_kappa);
+  wgUp.SetDoSystematics(do_syst);
+  wgUp.SetLuminosity(lumi);
+  wgUp.SetDoSystematics(do_syst);
+  wgUp.AddToys(n_toys);
+  wgUp.WriteToFile(outname.Data());
+
+  outname.ReplaceAll("Up", "Down");
+  WorkspaceGenerator wgDown(*pbaseline, *pblocks, backgrounds, signal, data, sysfile, use_r4, sig_strength, 1-xsec_unc);
+  wgDown.SetRMax(rmax);
+  wgDown.SetKappaCorrected(!no_kappa);
+  wgDown.SetDoSystematics(do_syst);
+  wgDown.SetLuminosity(lumi);
+  wgDown.SetDoSystematics(do_syst);
+  wgDown.AddToys(n_toys);
+  wgDown.WriteToFile(outname.Data());
 
   time(&endtime); 
   cout<<"Finding workspaces took "<<fixed<<setprecision(0)<<difftime(endtime, begtime)<<" seconds"<<endl<<endl;  
