@@ -11,8 +11,10 @@ import time
 # Setting folders
 model = "TChiHH"
 ntu_date = "2016_08_10"
+lumi = "36.2"
 
-infolder  = "/net/cms2/cms2r0/babymaker/wspaces/"+ntu_date+"/"+model+"/" 
+lumi_s = lumi.replace(".","p")
+infolder  = "/net/cms2/cms2r0/babymaker/wspaces/"+ntu_date+"/"+model+"_lumi"+lumi_s+"/" 
 runfolder = "batch_"+model+"/" 
 if not os.path.exists(runfolder):
   os.system("mkdir -p "+runfolder)

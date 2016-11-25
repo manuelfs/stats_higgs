@@ -11,10 +11,11 @@ import time
 # Setting folders
 model = "TChiHH"
 ntu_date = "2016_08_10"
-lumi = "12.9"
+lumi = "36.2"
 
+lumi_s = lumi.replace(".","p")
 infolder  = "/net/cms2/cms2r0/babymaker/babies/"+ntu_date+"/"+model+"/merged_higmc_higtight/"
-outfolder = "/net/cms2/cms2r0/babymaker/wspaces/"+ntu_date+"/"+model+"/" 
+outfolder = "/net/cms2/cms2r0/babymaker/wspaces/"+ntu_date+"/"+model+"_lumi"+lumi_s+"/" 
 runfolder = outfolder+"run/" 
 if not os.path.exists(runfolder):
   os.system("mkdir -p "+runfolder)
@@ -23,7 +24,7 @@ if not os.path.exists(runfolder):
 inputfiles = [i for i in os.listdir(infolder) if "SMS" in i]
 
 os.system("JobSetup.csh")
-njobs = 20
+njobs = 18
 files_job = (len(inputfiles)+njobs-1)/njobs
 ifile = 0
 ijob = 0

@@ -73,12 +73,15 @@ void YieldManager::ComputeYield(const YieldKey &key) const{
     
     //WARNING: Njets reweighting applied for all BG MC if lumi is more than 3 ifb
     
+    string totweight = oss.str()+"*weight*((type>=7000&&type<8000)*((met> 100 && met<= 125)*0.092+(met> 125 && met<= 150)*0.217+(met> 150 && met<= 175)*0.383+(met> 175 && met<= 200)*0.535+(met> 200 && met<= 225)*0.642+(met> 225 && met<= 250)*0.711+(met> 250 && met<= 275)*0.758+(met> 275 && met<= 300)*0.779+(met> 300 && met<=9999)*0.815) + (type<7000||type>=8000)*((met> 100 && met<= 125)*0.121+(met> 125 && met<= 150)*0.331+(met> 150 && met<= 175)*0.602+(met> 175 && met<= 200)*0.798+(met> 200 && met<= 225)*0.898+(met> 225 && met<= 250)*0.943+(met> 250 && met<= 275)*0.966+(met> 275 && met<= 300)*0.975+(met> 300 && met<=9999)*0.985))";
+
+    //totweight = oss.str()+"*weight";
+
     if(local_lumi_ > 3){ lumi_weight = process.IsData() ? Cut() : 
-	//(Contains(process.Name(), "sig")?Cut(oss.str()+"*weight"):Cut(oss.str()+"*weight*((mgluino>0)+(mgluino<0)*((njets<=4)*1.0+(njets==5)*0.867+(njets==6)*0.919+(njets==7)*0.734+(njets==8)*0.648+(njets==9)*0.607+(njets>=10)*0.642))"));}
-	(Contains(process.Name(), "sig")?Cut(oss.str()+"*weight"):Cut(oss.str()+"*weight"));}
+	(Contains(process.Name(), "sig")?Cut(totweight):Cut(totweight));}
 
     else{ lumi_weight = process.IsData() ? Cut() : 
-	(Contains(process.Name(), "sig")?Cut(oss.str()+"*weight"):Cut(oss.str()+"*weight"));}
+	(Contains(process.Name(), "sig")?Cut(totweight):Cut(totweight));}
 
 
     array<Cut, 5> cuts;

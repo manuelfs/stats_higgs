@@ -29,7 +29,7 @@
 using namespace std;
 
 namespace{
-  double lumi = 40;
+  double lumi = 36.2;
   double sig_strength = 0.;
   BlindLevel blind_level = BlindLevel::blinded;
   bool no_kappa = false;
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]){
       {sigfile+"/tree"}
     },"1", false, true};
 
-  string data_cuts("(trig[4]||trig[8])&&pass");
+  string data_cuts("(trig[13]||trig[33]||trig[14]||trig[15]||trig[30]||trig[31])&&pass");
 
   Process data{"data", {
       {folderdata+"/*.root/tree"}
@@ -114,31 +114,40 @@ int main(int argc, char *argv[]){
     cut3b = "nbm==3";
     cut4b = "nbm>=4";
   }
-  string cutme0="&&met>200&&met<=300", cutmet1="&&met>300";
-  string cutsig="hig_am>100&&hig_am<140&&hig_dm<40", cutsbd="!("+cutsig+")";
+  string cutmet0="&&met>150&&met<=200", cutmet1="&&met>200&&met<=300", cutmet2="&&met>300";
+  string cuthig="hig_am>100&&hig_am<140&&hig_dm<40", cutsbd="!("+cuthig+")&&hig_dm<40&&hig_am<200";
 
-  Bin sbd_2b_met0{"sbd_2b_met0", cut2b+"&&"+cutsbd+cutme0, blind_level>=BlindLevel::blinded};
-  Bin sig_2b_met0{"sig_2b_met0", cut2b+"&&"+cutsig+cutme0, blind_level>=BlindLevel::blinded};
-  Bin sbd_3b_met0{"sbd_3b_met0", cut3b+"&&"+cutsbd+cutme0, blind_level>=BlindLevel::blinded};
-  Bin sig_3b_met0{"sig_3b_met0", cut3b+"&&"+cutsig+cutme0, blind_level>=BlindLevel::blinded};
-  Bin sbd_4b_met0{"sbd_4b_met0", cut4b+"&&"+cutsbd+cutme0, blind_level>=BlindLevel::blinded};
-  Bin sig_4b_met0{"sig_4b_met0", cut4b+"&&"+cutsig+cutme0, blind_level>=BlindLevel::blinded};
+  Bin sbd_2b_met0{"sbd_2b_met0", cut2b+"&&"+cutsbd+cutmet0, blind_level>=BlindLevel::blinded};
+  Bin hig_2b_met0{"hig_2b_met0", cut2b+"&&"+cuthig+cutmet0, blind_level>=BlindLevel::blinded};
+  Bin sbd_3b_met0{"sbd_3b_met0", cut3b+"&&"+cutsbd+cutmet0, blind_level>=BlindLevel::blinded};
+  Bin hig_3b_met0{"hig_3b_met0", cut3b+"&&"+cuthig+cutmet0, blind_level>=BlindLevel::blinded};
+  Bin sbd_4b_met0{"sbd_4b_met0", cut4b+"&&"+cutsbd+cutmet0, blind_level>=BlindLevel::blinded};
+  Bin hig_4b_met0{"hig_4b_met0", cut4b+"&&"+cuthig+cutmet0, blind_level>=BlindLevel::blinded};
 
   Bin sbd_2b_met1{"sbd_2b_met1", cut2b+"&&"+cutsbd+cutmet1, blind_level>=BlindLevel::blinded};
-  Bin sig_2b_met1{"sig_2b_met1", cut2b+"&&"+cutsig+cutmet1, blind_level>=BlindLevel::blinded};
+  Bin hig_2b_met1{"hig_2b_met1", cut2b+"&&"+cuthig+cutmet1, blind_level>=BlindLevel::blinded};
   Bin sbd_3b_met1{"sbd_3b_met1", cut3b+"&&"+cutsbd+cutmet1, blind_level>=BlindLevel::blinded};
-  Bin sig_3b_met1{"sig_3b_met1", cut3b+"&&"+cutsig+cutmet1, blind_level>=BlindLevel::blinded};
+  Bin hig_3b_met1{"hig_3b_met1", cut3b+"&&"+cuthig+cutmet1, blind_level>=BlindLevel::blinded};
   Bin sbd_4b_met1{"sbd_4b_met1", cut4b+"&&"+cutsbd+cutmet1, blind_level>=BlindLevel::blinded};
-  Bin sig_4b_met1{"sig_4b_met1", cut4b+"&&"+cutsig+cutmet1, blind_level>=BlindLevel::blinded};
+  Bin hig_4b_met1{"hig_4b_met1", cut4b+"&&"+cuthig+cutmet1, blind_level>=BlindLevel::blinded};
+
+  Bin sbd_2b_met2{"sbd_2b_met2", cut2b+"&&"+cutsbd+cutmet2, blind_level>=BlindLevel::blinded};
+  Bin hig_2b_met2{"hig_2b_met2", cut2b+"&&"+cuthig+cutmet2, blind_level>=BlindLevel::blinded};
+  Bin sbd_3b_met2{"sbd_3b_met2", cut3b+"&&"+cutsbd+cutmet2, blind_level>=BlindLevel::blinded};
+  Bin hig_3b_met2{"hig_3b_met2", cut3b+"&&"+cuthig+cutmet2, blind_level>=BlindLevel::blinded};
+  Bin sbd_4b_met2{"sbd_4b_met2", cut4b+"&&"+cutsbd+cutmet2, blind_level>=BlindLevel::blinded};
+  Bin hig_4b_met2{"hig_4b_met2", cut4b+"&&"+cuthig+cutmet2, blind_level>=BlindLevel::blinded};
 
   //// Defining the 2x3 ABCD in bins of met
   set<Block> blocks_abcd;
 
   blocks_abcd = {
     {"met0", {{sbd_2b_met0, sbd_3b_met0, sbd_4b_met0},
-	      {sig_2b_met0, sig_3b_met0, sig_4b_met0}}},
+	      {hig_2b_met0, hig_3b_met0, hig_4b_met0}}},
     {"met1", {{sbd_2b_met1, sbd_3b_met1, sbd_4b_met1},
-	      {sig_2b_met1, sig_3b_met1, sig_4b_met1}}}
+	      {hig_2b_met1, hig_3b_met1, hig_4b_met1}}},
+    {"met2", {{sbd_2b_met2, sbd_3b_met2, sbd_4b_met2},
+	      {hig_2b_met2, hig_3b_met2, hig_4b_met2}}}
   };
 
   //// Parsing the gluino and LSP masses
@@ -151,7 +160,7 @@ int main(int argc, char *argv[]){
   set<Block> *pblocks(&blocks_abcd);
 
   string sysfolder = "txt/systematics/";
-  string sysfile(sysfolder+"/sys_TChiHH_flat20percent.txt");
+  string sysfile(sysfolder+"/sys_TChiHH.txt");
   
   // If systematic file does not exist, complain
   struct stat buffer;   

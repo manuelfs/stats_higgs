@@ -1,0 +1,17 @@
+SYSTEMATIC random
+ PROCESSES ttbar,other
+  hig_3b_met0	   0.30
+  hig_4b_met0	   0.30
+  hig_3b_met1	   0.30
+  hig_4b_met1	   0.30
+  hig_3b_met2	   0.30
+  hig_4b_met2	   0.30
+
+SYSTEMATIC sigsys
+ PROCESSES signal
+  hig_3b_met0	   0.20
+  hig_4b_met0	   0.20
+  hig_3b_met1	   0.20
+  hig_4b_met1	   0.20
+  hig_3b_met2	   0.20
+  hig_4b_met2	   0.20
