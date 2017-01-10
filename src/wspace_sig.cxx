@@ -61,26 +61,27 @@ int main(int argc, char *argv[]){
   //Define processes. Try to minimize splitting
   string stitch_cuts("stitch&&pass");
   Process ttbar{"ttbar", {
-      {foldermc+"/*_TTJets*.root/tree"}
+      {foldermc+"/*_TTJets*Lep*.root/tree"},
+	{foldermc+"/*_TTJets_HT*.root/tree"}
     },stitch_cuts};
 
   Process other{"other", {
-      {foldermc+"/*_WJetsToLNu*.root/tree"},
-	{foldermc+"/*_TTW*.root/tree"},
-	  {foldermc+"/*_TTZ*.root/tree"},
-	    {foldermc+"/*DYJetsToLL*.root/tree"},
-	      {foldermc+"/*_ZJet*.root/tree"},
-		{foldermc+"/*ttHJetTobb*.root/tree"},
-		  {foldermc+"/*_TTGJets*.root/tree"},
-		    {foldermc+"/*_TTTT*.root/tree"},
-		      {foldermc+"/*_WH_HToBB*.root/tree"},
-			{foldermc+"/*_ZH_HToBB*.root/tree"},
-			  {foldermc+"/*_WWTo*.root/tree"},
-			    {foldermc+"/*_WZ*.root/tree"},
-			      {foldermc+"/*_ZZ*.root/tree"},
-				{foldermc+"/*QCD_HT*0_Tune*.root/tree"},
-				  {foldermc+"/*QCD_HT*Inf_Tune*.root/tree"},
-				    {foldermc+"/*_ST_*.root/tree"}
+      {foldermc+"/*_TTW*.root/tree"},
+	{foldermc+"/*_TTZ*.root/tree"},
+	  {foldermc+"/*_TTGJets*.root/tree"},
+	    {foldermc+"/*ttHJetTobb*.root/tree"},
+	      {foldermc+"/*_TTTT*.root/tree"},
+		{foldermc+"/*_ZJet*.root/tree"},
+		  {foldermc+"/*_WJetsToLNu*.root/tree"},
+		    {foldermc+"/*DYJetsToLL*.root/tree"},
+		      {foldermc+"/*_ST_*.root/tree"},
+			{foldermc+"/*QCD_HT*0_Tune*.root/tree"},
+			  {foldermc+"/*QCD_HT*Inf_Tune*.root/tree"},
+			    {foldermc+"/*_WH_HToBB*.root/tree"},
+			      {foldermc+"/*_ZH_HToBB*.root/tree"},
+				{foldermc+"/*_WWTo*.root/tree"},
+				  {foldermc+"/*_WZ*.root/tree"},
+				    {foldermc+"/*_ZZ*.root/tree"}
     },stitch_cuts};
   Process signal{"signal", {
       {sigfile+"/tree"}
@@ -96,7 +97,7 @@ int main(int argc, char *argv[]){
   set<Process> backgrounds{ttbar, other};
 
   //Baseline selection applied to all bins and processes
-  Cut baseline{"hig_drmax<2.2&&ntks==0&&njets>=4&&njets<=5&&!low_dphi&&nvleps==0"}; 
+  Cut baseline{"hig_drmax<2.2&&ntks==0&&njets>=4&&njets<=5&&!low_dphi&&nvleps==0&&pass_ra2_badmu&&met/met_calo<5"}; 
 
   string cut2b="nbt==2&&nbm==2", cut3b="nbt>=2&&nbm==3&&nbl==3", cut4b="nbt>=2&&nbm>=3&&nbl>=4";
   if(nb_bins=="TTTL"){
@@ -114,7 +115,10 @@ int main(int argc, char *argv[]){
     cut3b = "nbm==3";
     cut4b = "nbm>=4";
   }
-  string cutmet0="&&met>150&&met<=200", cutmet1="&&met>200&&met<=300", cutmet2="&&met>300";
+  string cutmet0="&&met>150&&met<=200", cutmet1="&&met>200&&met<=300", cutmet2="&&met>300&&met<=450";
+  string cutmet3="&&met>450";
+
+  //cutmet2="&&met>300";
   string cuthig="hig_am>100&&hig_am<140&&hig_dm<40", cutsbd="!("+cuthig+")&&hig_dm<40&&hig_am<200";
 
   Bin sbd_2b_met0{"sbd_2b_met0", cut2b+"&&"+cutsbd+cutmet0, blind_level>=BlindLevel::blinded};
@@ -138,6 +142,13 @@ int main(int argc, char *argv[]){
   Bin sbd_4b_met2{"sbd_4b_met2", cut4b+"&&"+cutsbd+cutmet2, blind_level>=BlindLevel::blinded};
   Bin hig_4b_met2{"hig_4b_met2", cut4b+"&&"+cuthig+cutmet2, blind_level>=BlindLevel::blinded};
 
+  Bin sbd_2b_met3{"sbd_2b_met3", cut2b+"&&"+cutsbd+cutmet3, blind_level>=BlindLevel::blinded};
+  Bin hig_2b_met3{"hig_2b_met3", cut2b+"&&"+cuthig+cutmet3, blind_level>=BlindLevel::blinded};
+  Bin sbd_3b_met3{"sbd_3b_met3", cut3b+"&&"+cutsbd+cutmet3, blind_level>=BlindLevel::blinded};
+  Bin hig_3b_met3{"hig_3b_met3", cut3b+"&&"+cuthig+cutmet3, blind_level>=BlindLevel::blinded};
+  Bin sbd_4b_met3{"sbd_4b_met3", cut4b+"&&"+cutsbd+cutmet3, blind_level>=BlindLevel::blinded};
+  Bin hig_4b_met3{"hig_4b_met3", cut4b+"&&"+cuthig+cutmet3, blind_level>=BlindLevel::blinded};
+
   //// Defining the 2x3 ABCD in bins of met
   set<Block> blocks_abcd;
 
@@ -148,6 +159,9 @@ int main(int argc, char *argv[]){
 	      {hig_2b_met1, hig_3b_met1, hig_4b_met1}}},
     {"met2", {{sbd_2b_met2, sbd_3b_met2, sbd_4b_met2},
 	      {hig_2b_met2, hig_3b_met2, hig_4b_met2}}}
+    ,
+    {"met3", {{sbd_2b_met3, sbd_3b_met3, sbd_4b_met3},
+    	      {hig_2b_met3, hig_3b_met3, hig_4b_met3}}}
   };
 
   //// Parsing the gluino and LSP masses

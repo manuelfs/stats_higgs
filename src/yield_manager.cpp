@@ -71,9 +71,11 @@ void YieldManager::ComputeYield(const YieldKey &key) const{
     oss << local_lumi_ << flush;
     Cut lumi_weight;
     
-    //WARNING: Njets reweighting applied for all BG MC if lumi is more than 3 ifb
-    
-    string totweight = oss.str()+"*weight*((type>=7000&&type<8000)*((met> 100 && met<= 125)*0.092+(met> 125 && met<= 150)*0.217+(met> 150 && met<= 175)*0.383+(met> 175 && met<= 200)*0.535+(met> 200 && met<= 225)*0.642+(met> 225 && met<= 250)*0.711+(met> 250 && met<= 275)*0.758+(met> 275 && met<= 300)*0.779+(met> 300 && met<=9999)*0.815) + (type<7000||type>=8000)*((met> 100 && met<= 125)*0.121+(met> 125 && met<= 150)*0.331+(met> 150 && met<= 175)*0.602+(met> 175 && met<= 200)*0.798+(met> 200 && met<= 225)*0.898+(met> 225 && met<= 250)*0.943+(met> 250 && met<= 275)*0.966+(met> 275 && met<= 300)*0.975+(met> 300 && met<=9999)*0.985))";
+    //string totweight = oss.str()+"*weight*((type>=7000&&type<8000)*((met> 100 && met<= 125)*0.092+(met> 125 && met<= 150)*0.217+(met> 150 && met<= 175)*0.383+(met> 175 && met<= 200)*0.535+(met> 200 && met<= 225)*0.642+(met> 225 && met<= 250)*0.711+(met> 250 && met<= 275)*0.758+(met> 275 && met<= 300)*0.779+(met> 300 && met<=9999)*0.815) + (type<7000||type>=8000)*((met> 100 && met<= 125)*0.121+(met> 125 && met<= 150)*0.331+(met> 150 && met<= 175)*0.602+(met> 175 && met<= 200)*0.798+(met> 200 && met<= 225)*0.898+(met> 225 && met<= 250)*0.943+(met> 250 && met<= 275)*0.966+(met> 275 && met<= 300)*0.975+(met> 300 && met<=9999)*0.985))";
+
+    string totweight = oss.str()+"*weight*((type>=7000&&type<8000)*((met> 100 && met<= 125)*0.092+(met> 125 && met<= 150)*0.217+(met> 150 && met<= 175)*0.383+(met> 175 && met<= 200)*0.535+(met> 200 && met<= 225)*0.642+(met> 225 && met<= 250)*0.711+(met> 250 && met<= 275)*0.758+(met> 275 && met<= 300)*0.779+(met> 300 && met<=9999)*0.815) + (type<7000||type>=8000)*((met> 150 && met<= 155)*0.510+(met> 155 && met<= 160)*0.571+(met> 160 && met<= 165)*0.622+(met> 165 && met<= 170)*0.668+(met> 170 && met<= 175)*0.711+(met> 175 && met<= 180)*0.746+(met> 180 && met<= 185)*0.784+(met> 185 && met<= 190)*0.813+(met> 190 && met<= 195)*0.845+(met> 195 && met<= 200)*0.845+(met> 200 && met<= 210)*0.881+(met> 210 && met<= 220)*0.912+(met> 220 && met<= 230)*0.926+(met> 230 && met<= 240)*0.946+(met> 240 && met<= 250)*0.958+(met> 250 && met<= 275)*0.969+(met> 275 && met<= 300)*0.977+(met> 300 && met<=9999)*0.989))";
+
+
 
     //totweight = oss.str()+"*weight";
 
