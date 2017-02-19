@@ -1,17 +1,61 @@
-SYSTEMATIC random
+SYSTEMATIC stat_3bmet0
  PROCESSES ttbar,other
-  hig_3b_met0	   0.30
-  hig_4b_met0	   0.30
-  hig_3b_met1	   0.30
-  hig_4b_met1	   0.30
-  hig_3b_met2	   0.30
-  hig_4b_met2	   0.30
+  sbd_3b_met0	   0.08
+
+SYSTEMATIC stat_4bmet0
+ PROCESSES ttbar,other
+  sbd_4b_met0	   0.15
+
+SYSTEMATIC stat_3bmet1
+ PROCESSES ttbar,other
+  sbd_3b_met1	   0.05
+
+SYSTEMATIC stat_4bmet1
+ PROCESSES ttbar,other
+  sbd_4b_met1	   0.37
+
+SYSTEMATIC stat_3bmet2
+ PROCESSES ttbar,other
+  sbd_3b_met2	   0.19
+
+SYSTEMATIC stat_4bmet2
+ PROCESSES ttbar,other
+  sbd_4b_met2	   0.23
+
+SYSTEMATIC stat_3bmet3
+ PROCESSES ttbar,other
+  sbd_3b_met3    0.59
+
+SYSTEMATIC stat_4bmet3
+ PROCESSES ttbar,other
+  sbd_4b_met3    0.75
 
 SYSTEMATIC sigsys
  PROCESSES signal
-  hig_3b_met0	   0.20
-  hig_4b_met0	   0.20
-  hig_3b_met1	   0.20
-  hig_4b_met1	   0.20
-  hig_3b_met2	   0.20
-  hig_4b_met2	   0.20
+  sbd_2b_met0    0.20
+  hig_2b_met0    0.20
+  sbd_3b_met0    0.20
+  hig_3b_met0    0.20
+  sbd_4b_met0    0.20
+  hig_4b_met0    0.20
+
+  sbd_2b_met1    0.20
+  hig_2b_met1    0.20
+  sbd_3b_met1    0.20
+  hig_3b_met1    0.20
+  sbd_4b_met1    0.20
+  hig_4b_met1    0.20
+
+  sbd_2b_met2    0.20
+  hig_2b_met2    0.20
+  sbd_3b_met2    0.20
+  hig_3b_met2    0.20
+  sbd_4b_met2    0.20
+  hig_4b_met2    0.20
+
+  sbd_2b_met3    0.20
+  hig_2b_met3    0.20
+  sbd_3b_met3    0.20
+  hig_3b_met3    0.20
+  sbd_4b_met3    0.20
+  hig_4b_met3    0.20

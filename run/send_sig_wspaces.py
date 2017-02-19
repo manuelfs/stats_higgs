@@ -10,12 +10,12 @@ import time
 
 # Setting folders
 model = "TChiHH"
-ntu_date = "2016_08_10"
-lumi = "36.2"
+ntu_date = "2017_01_27"
+lumi = "35.9"
 
 lumi_s = lumi.replace(".","p")
-infolder  = "/net/cms2/cms2r0/babymaker/babies/"+ntu_date+"/"+model+"/merged_higmc_higtight/"
-outfolder = "/net/cms2/cms2r0/babymaker/wspaces/"+ntu_date+"/"+model+"_lumi"+lumi_s+"/" 
+infolder  = "/net/cms29/cms29r0/babymaker/babies/"+ntu_date+"/"+model+"/merged_higmc_higtight/"
+outfolder = "/net/cms29/cms29r0/babymaker/wspaces/"+ntu_date+"/"+model+"_lumi"+lumi_s+"/" 
 runfolder = outfolder+"run/" 
 if not os.path.exists(runfolder):
   os.system("mkdir -p "+runfolder)

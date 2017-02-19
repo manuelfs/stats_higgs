@@ -29,16 +29,17 @@
 using namespace std;
 
 namespace{
-  double lumi = 36.2;
+  double lumi = 35.9;
   double sig_strength = 0.;
-  BlindLevel blind_level = BlindLevel::blinded;
-  bool no_kappa = false;
+  BlindLevel blind_level = BlindLevel::unblinded;
+  bool no_kappa = true;
   bool do_syst = true;
   bool use_r4 = true;
+  bool deep = true;
   unsigned n_toys = 0;
   string outfolder = "";
   string nb_bins("TTML");
-  string sigfile = "/net/cms2/cms2r0/babymaker/babies/2016_08_10/TChiHH/merged_higmc_higloose/*TChiHH_mGluino-1000_*.root";
+  string sigfile = "/net/cms29/cms29r0/babymaker/babies/2017_01_27/TChiHH/merged_higmc_higtight/mergedbaby__SMS-TChiHH_mGluino-400_mLSP-1_Tune_skim_higtight_higmc_nfiles_1.root";
 }
 
 int main(int argc, char *argv[]){
@@ -51,18 +52,17 @@ int main(int argc, char *argv[]){
     return 1;
   }
   string hostname = execute("echo $HOSTNAME");
-  string basefolder("/net/cms2/cms2r0/babymaker/");
+  string basefolder("/net/cms29/cms29r0/babymaker/");
   if(Contains(hostname, "lxplus")) basefolder = "/afs/cern.ch/user/m/manuelf/work/";
 
-  string foldermc(basefolder+"babies/2016_08_10/mc/merged_higmc_higtight/"); 
-  string folderdata(basefolder+"babies/2016_04_29/data/merged_abcd/"); // Pointing to a random folder for now
+  string foldermc(basefolder+"babies/2017_01_27/mc/merged_higmc_higtight/"); 
+  string folderdata(basefolder+"babies/2017_02_14/data/merged_higdata_higloose/"); // Pointing to a random folder for now
 
   
   //Define processes. Try to minimize splitting
-  string stitch_cuts("stitch&&pass");
+  string stitch_cuts("stitch_met&&pass");
   Process ttbar{"ttbar", {
-      {foldermc+"/*_TTJets*Lep*.root/tree"},
-	{foldermc+"/*_TTJets_HT*.root/tree"}
+      {foldermc+"/*_TTJets*Lep*.root/tree"}
     },stitch_cuts};
 
   Process other{"other", {
@@ -83,11 +83,12 @@ int main(int argc, char *argv[]){
 				  {foldermc+"/*_WZ*.root/tree"},
 				    {foldermc+"/*_ZZ*.root/tree"}
     },stitch_cuts};
+    
   Process signal{"signal", {
       {sigfile+"/tree"}
-    },"1", false, true};
+    },"pass_goodv&&pass_ecaldeadcell&&pass_hbhe&&pass_hbheiso&&pass_fsmet", false, true};
 
-  string data_cuts("(trig[13]||trig[33]||trig[14]||trig[15]||trig[30]||trig[31])&&pass");
+  string data_cuts("(trig[13]||trig[33]||trig[14]||trig[15]||trig[30]||trig[31]||trig[22]||trig[40]||trig[24]||trig[41]||trig[19]||trig[55]||trig[21])&&pass");
 
   Process data{"data", {
       {folderdata+"/*.root/tree"}
@@ -97,29 +98,29 @@ int main(int argc, char *argv[]){
   set<Process> backgrounds{ttbar, other};
 
   //Baseline selection applied to all bins and processes
-  Cut baseline{"hig_drmax<2.2&&ntks==0&&njets>=4&&njets<=5&&!low_dphi&&nvleps==0&&pass_ra2_badmu&&met/met_calo<5"}; 
+  string basestr = "hig_drmax<2.2&&ntks==0&&njets>=4&&njets<=5&&!low_dphi&&nvleps==0&&pass_ra2_badmu&&met/met_calo<5";
+  if (deep) basestr = "higd_drmax<2.2&&ntks==0&&njets>=4&&njets<=5&&!low_dphi&&nvleps==0&&pass_ra2_badmu&&met/met_calo<5";
+  Cut baseline{basestr}; 
 
-  string cut2b="nbt==2&&nbm==2", cut3b="nbt>=2&&nbm==3&&nbl==3", cut4b="nbt>=2&&nbm>=3&&nbl>=4";
-  if(nb_bins=="TTTL"){
-    cut2b = "nbt==2";
-    cut3b = "nbt==3&&nbl==3";
-    cut4b = "nbt>=3&&nbl>=4";
+  string cut2b="nbt==2&&nbm==2";
+  string cut3b="nbt>=2&&nbm==3&&nbl==3";
+  string cut4b="nbt>=2&&nbm>=3&&nbl>=4";
+  if (deep) {
+    cut2b="nbdt==2&&nbdm==2";
+    cut3b="nbdt>=2&&nbdm==3&&nbdl==3";
+    cut4b="nbdt>=2&&nbdm>=3&&nbdl>=4";
   }
-  if(nb_bins=="MMMM"){
-    cut2b = "nbm==2";
-    cut3b = "nbm==3";
-    cut4b = "nbm>=4";
-  }
-  if(nb_bins=="TTMM"){
-    cut2b = "nbt==2&&nbm==2";
-    cut3b = "nbm==3";
-    cut4b = "nbm>=4";
-  }
+
   string cutmet0="&&met>150&&met<=200", cutmet1="&&met>200&&met<=300", cutmet2="&&met>300&&met<=450";
   string cutmet3="&&met>450";
 
   //cutmet2="&&met>300";
-  string cuthig="hig_am>100&&hig_am<140&&hig_dm<40", cutsbd="!("+cuthig+")&&hig_dm<40&&hig_am<200";
+  string cuthig="hig_am>100&&hig_am<140&&hig_dm<40";
+  string cutsbd="!(hig_am>100&&hig_am<140)&&hig_dm<40&&hig_am<200";
+  if (deep) {
+    cuthig="higd_am>100&&higd_am<140&&higd_dm<40";
+    cutsbd="!(higd_am>100&&higd_am<140)&&higd_dm<40&&higd_am<200";
+  }
 
   Bin sbd_2b_met0{"sbd_2b_met0", cut2b+"&&"+cutsbd+cutmet0, blind_level>=BlindLevel::blinded};
   Bin hig_2b_met0{"hig_2b_met0", cut2b+"&&"+cuthig+cutmet0, blind_level>=BlindLevel::blinded};
@@ -158,8 +159,7 @@ int main(int argc, char *argv[]){
     {"met1", {{sbd_2b_met1, sbd_3b_met1, sbd_4b_met1},
 	      {hig_2b_met1, hig_3b_met1, hig_4b_met1}}},
     {"met2", {{sbd_2b_met2, sbd_3b_met2, sbd_4b_met2},
-	      {hig_2b_met2, hig_3b_met2, hig_4b_met2}}}
-    ,
+	      {hig_2b_met2, hig_3b_met2, hig_4b_met2}}},
     {"met3", {{sbd_2b_met3, sbd_3b_met3, sbd_4b_met3},
     	      {hig_2b_met3, hig_3b_met3, hig_4b_met3}}}
   };
@@ -169,6 +169,7 @@ int main(int argc, char *argv[]){
   parseMasses(sigfile, mglu, mlsp);
   string glu_lsp("mGluino-"+to_string(mglu)+"_mLSP-"+to_string(mlsp));
 
+  cout<<"Creating workpaces"<<endl;
   //// Creating workspaces
   Cut *pbaseline(&baseline);
   set<Block> *pblocks(&blocks_abcd);
@@ -245,6 +246,7 @@ void GetOptions(int argc, char *argv[]){
       {"no_syst", no_argument, 0, 0},
       {"nokappa", no_argument, 0, 'k'},
       {"no_r4", no_argument, 0, '4'},
+      {"csv", no_argument, 0, 0},
       {"toys", required_argument, 0, 0},
       {"sig_strength", required_argument, 0, 'g'},
       {"outfolder", required_argument, 0, 'o'},
@@ -296,6 +298,8 @@ void GetOptions(int argc, char *argv[]){
         do_syst = false;
       }else if(optname == "toys"){
         n_toys = atoi(optarg);
+      }else if(optname == "csv"){
+        deep = false;
       }else{
         printf("Bad option! Found option name %s\n", optname.c_str());
       }
