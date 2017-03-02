@@ -39,7 +39,7 @@ namespace{
   unsigned n_toys = 0;
   string outfolder = "";
   string nb_bins("TTML");
-  string sigfile = "/net/cms29/cms29r0/babymaker/babies/2017_01_27/TChiHH/merged_higmc_higtight/mergedbaby__SMS-TChiHH_mGluino-400_mLSP-1_Tune_skim_higtight_higmc_nfiles_1.root";
+  string sigfile = "/net/cms27/cms27r0/babymaker/babies/2017_02_26/TChiHH/merged_higmc_higtight/mergedbaby__SMS-TChiHH_mGluino-400_mLSP-1_Tune_skim_higtight_higmc_nfiles_1.root";
 }
 
 int main(int argc, char *argv[]){
@@ -88,7 +88,8 @@ int main(int argc, char *argv[]){
       {sigfile+"/tree"}
     },"pass_goodv&&pass_ecaldeadcell&&pass_hbhe&&pass_hbheiso&&pass_fsmet", false, true};
 
-  string data_cuts("(trig[13]||trig[33]||trig[14]||trig[15]||trig[30]||trig[31]||trig[22]||trig[40]||trig[24]||trig[41]||trig[19]||trig[55]||trig[21])&&pass");
+  string data_cuts("(trig[13]||trig[33]||trig[14]||trig[15]||trig[30]||trig[31])&&pass");
+
 
   Process data{"data", {
       {folderdata+"/*.root/tree"}
@@ -174,14 +175,14 @@ int main(int argc, char *argv[]){
   Cut *pbaseline(&baseline);
   set<Block> *pblocks(&blocks_abcd);
 
-  string sysfolder = "txt/systematics/";
-  string sysfile(sysfolder+"/sys_TChiHH.txt");
+  string sysfolder = "/net/cms27/cms27r0/babymaker/sys/2017_02_26/TChiHH/";
+  string sysfile(sysfolder+"/sys_SMS-TChiHH_mGluino-"+to_string(mglu)+"_mLSP-1_35p9ifb.txt");
   
   // If systematic file does not exist, complain
   struct stat buffer;   
   if(stat (sysfile.c_str(), &buffer) != 0) {
     cout<<endl<<"WARNING: "<<sysfile<<" does not exist. Using ";
-    sysfile = "txt/systematics/sys_SMS-TChiHH_4b_mChi-400.txt";
+    sysfile = "txt/systematics/sys_TChiHH.txt";
     cout<<sysfile<<" instead"<<endl<<endl;
   }
 

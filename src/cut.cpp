@@ -14,6 +14,15 @@ Cut::Cut(const char *cut):
   Clean();
 }
 
+string Cut::GetCut(){
+  return cut_;
+}
+
+void Cut::SetCut(string &cut){
+  cut_ = cut;
+  Clean();
+}
+
 Cut & Cut::Replace(const Cut &orig, const Cut &rep){
   ReplaceAll(cut_, orig.cut_, rep.cut_);
   return *this;
