@@ -51,7 +51,7 @@ double GetTotPred(const RooWorkspace &w,
                   const std::string &bin_name);
 double GetTotPredErr(RooWorkspace &w,
                      const RooFitResult &f,
-                     const std::string &bin_name);
+                     const std::string &bin_name, int errtype=0);
 
 double GetObserved(const RooWorkspace &w,
                    const std::string &bin_name);
@@ -112,7 +112,6 @@ void MakeCorrectionPlot(RooWorkspace &w,
                         const RooFitResult &f,
                         const std::string &file_name);
 
-double GetError(const RooAbsReal &var,
-                const RooFitResult &f);
+double GetError(const RooAbsReal &var,  const RooFitResult &f, int errtype=0);
 
 #endif

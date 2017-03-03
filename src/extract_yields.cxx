@@ -258,7 +258,8 @@ void PrintTable(RooWorkspace &w,
     if(dosig) out << "$" << GetBkgPred(w, bin_name) << "\\pm" << GetBkgPredErr(w, f, bin_name) <<  "$ & ";
     out << GetMCYield(w, bin_name, sig_name) << " & ";
     if(dosig) out << "$" << GetSigPred(w, bin_name) << "\\pm" << GetSigPredErr(w, f, bin_name) <<  "$ & ";
-    out << "$" << GetTotPred(w, bin_name) << "\\pm" << GetTotPredErr(w, f, bin_name) <<  "$ & ";
+    out << "$" << GetTotPred(w, bin_name) << "^{+" << GetTotPredErr(w, f, bin_name,1) 
+	<<"}_{-"<< GetTotPredErr(w, f, bin_name,-1) <<  "}$ & ";
     if(Contains(bin_name,"4") && (blind_all || (!Contains(bin_name,"1b") && blind_2b))) out << "-- & ";
     else out << setprecision(0) << GetObserved(w, bin_name);
     out << setprecision(digits);
@@ -434,7 +435,7 @@ double GetTotPred(const RooWorkspace &w,
 
 double GetTotPredErr(RooWorkspace &w,
                      const RooFitResult &f,
-                     const string &bin_name){
+                     const string &bin_name, int errtype){
   TIter iter(w.allFunctions().createIterator());
   int size = w.allFunctions().getSize();
   RooAbsArg *arg = nullptr;
@@ -446,7 +447,8 @@ double GetTotPredErr(RooWorkspace &w,
     if(name.substr(0,9) != "nexp_BLK_") continue;
     if(!(Contains(name, "_BIN_"+bin_name))) continue;
     if(Contains(name, "_PRC_")) continue;
-    return GetError(*static_cast<RooAbsReal*>(arg), f);
+    //cout<<name<<endl;
+    return GetError(*static_cast<RooAbsReal*>(arg), f, errtype);
   }
   iter.Reset();
   return -1.;
@@ -1019,7 +1021,7 @@ void MakeCorrectionPlot(RooWorkspace &w,
 }
 
 double GetError(const RooAbsReal &var,
-                const RooFitResult &f){
+                const RooFitResult &f, int errtype){
   // Clone self for internal use
   RooAbsReal* cloneFunc = static_cast<RooAbsReal*>(var.cloneTree());
   RooArgSet* errorParams = cloneFunc->getObservables(f.floatParsFinal());
@@ -1037,31 +1039,55 @@ double GetError(const RooAbsReal &var,
     }
   }
 
+  string name = var.GetName();
   vector<double> errors(paramList.getSize());
   for (Int_t ivar=0; ivar<paramList.getSize(); ivar++) {
     RooRealVar& rrv = static_cast<RooRealVar&>(fpf[fpf_idx[ivar]]);
 
     double cenVal = rrv.getVal();
     double errVal = rrv.getError();
+    if(errtype == 1) errVal = rrv.getErrorHi();
+    if(errtype ==-1) errVal = rrv.getErrorLo();
 
     // Make Plus variation
-    static_cast<RooRealVar*>(paramList.at(ivar))->setVal(cenVal+0.5*errVal);
+    if(errtype==1) static_cast<RooRealVar*>(paramList.at(ivar))->setVal(cenVal+errVal);
+    else if(errtype==-1) static_cast<RooRealVar*>(paramList.at(ivar))->setVal(cenVal);
+    else static_cast<RooRealVar*>(paramList.at(ivar))->setVal(cenVal+0.5*errVal);
     double up = cloneFunc->getVal(nset);
 
     // Make Minus variation
-    static_cast<RooRealVar*>(paramList.at(ivar))->setVal(cenVal-0.5*errVal);
+    if(errtype==1) static_cast<RooRealVar*>(paramList.at(ivar))->setVal(cenVal);
+    else if(errtype==-1) static_cast<RooRealVar*>(paramList.at(ivar))->setVal(cenVal+errVal);
+    else static_cast<RooRealVar*>(paramList.at(ivar))->setVal(cenVal-0.5*errVal);
     double down = cloneFunc->getVal(nset);
+
+    // string parname = rrv.GetName();
+    // if(Contains(parname, "ry21_BLK_met3") || Contains(parname, "rx21_BLK_met3") || Contains(parname, "rx31_BLK_met3")){
+    //   cout<<name<<" "<<ivar<<" - "<<parname<<": cenVal "<<setw(12)<<cenVal<<", errVal "<<setw(12)<<errVal<<", up "<<setw(12)<<up
+    // 	  <<", down "<<setw(12)<<down<<", errtype "<<setw(12)<<errtype<<endl;
+    // }
 
     errors.at(ivar) = (up-down);
 
     static_cast<RooRealVar*>(paramList.at(ivar))->setVal(cenVal);
   }
+  // cout<<endl;
 
+  // bool print_corr = false;
+  // if(name.substr(0,9) == "nexp_BLK_" && Contains(name, "_BIN_hig_4b_met3") && !Contains(name, "_PRC_")){
+  //      cout<<"Doing hig_4b_met3 = "<<var.getVal() <<endl;
+  //      print_corr = true;
+  //    }
   vector<double> right(errors.size());
   for(size_t i = 0; i < right.size(); ++i){
     right.at(i) = 0.;
     for(size_t j = 0; j < errors.size(); ++j){
       right.at(i) += f.correlation(paramList.at(i)->GetName(),paramList.at(j)->GetName())*errors.at(j);
+      string par1 = paramList.at(i)->GetName(), par2 = paramList.at(j)->GetName();
+      // if(print_corr && (Contains(par1, "rx") || Contains(par1, "ry") || Contains(par1, "norm"))
+      // 	 && (Contains(par2, "rx") || Contains(par2, "ry") || Contains(par2, "norm"))) cout<<setw(40)<<par1<<", "<<setw(40)<<par2
+      // 			 <<": corr = "
+      // 			 <<f.correlation(paramList.at(i)->GetName(),paramList.at(j)->GetName())<<endl;
     }
   }
   double sum = 0.;
