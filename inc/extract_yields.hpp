@@ -112,6 +112,13 @@ void MakeCorrectionPlot(RooWorkspace &w,
                         const RooFitResult &f,
                         const std::string &file_name);
 
+
+void MakeCovarianceMatrix(RooWorkspace &w,
+			  const RooFitResult &f,
+			  std::string covar_file_name);
+
+std::string PrettyBinName(std::string name);
+
 double GetError(const RooAbsReal &var,  const RooFitResult &f, int errtype=0);
 
 #endif

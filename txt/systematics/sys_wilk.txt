@@ -1,0 +1,3 @@
+SYSTEMATIC wilks
+ PROCESSES ttbar,other
+  sbd_4b_met3    10.0

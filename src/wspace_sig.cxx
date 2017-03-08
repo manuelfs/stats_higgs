@@ -37,6 +37,7 @@ namespace{
   bool use_r4 = true;
   bool deep = true;
   unsigned n_toys = 0;
+  string sysfile = "default";
   string outfolder = "";
   string nb_bins("TTML");
   string sigfile = "/net/cms27/cms27r0/babymaker/babies/2017_02_26/TChiHH/merged_higmc_higtight/mergedbaby__SMS-TChiHH_mGluino-400_mLSP-1_Tune_skim_higtight_higmc_nfiles_1.root";
@@ -155,17 +156,21 @@ int main(int argc, char *argv[]){
   set<Block> blocks_abcd;
 
   blocks_abcd = {
-    {"met0", {{sbd_2b_met0, sbd_3b_met0, sbd_4b_met0},
-	      {hig_2b_met0, hig_3b_met0, hig_4b_met0}}},
-    {"met1", {{sbd_2b_met1, sbd_3b_met1, sbd_4b_met1},
-	      {hig_2b_met1, hig_3b_met1, hig_4b_met1}}},
-    {"met2", {{sbd_2b_met2, sbd_3b_met2, sbd_4b_met2},
-	      {hig_2b_met2, hig_3b_met2, hig_4b_met2}}},
-    {"met3", {{sbd_2b_met3, sbd_3b_met3, sbd_4b_met3},
-    	      {hig_2b_met3, hig_3b_met3, hig_4b_met3}}}
+    {"met0", {{sbd_2b_met0, hig_2b_met0}, {sbd_3b_met0, hig_3b_met0}, {sbd_4b_met0, hig_4b_met0}}},
+    {"met1", {{sbd_2b_met1, hig_2b_met1}, {sbd_3b_met1, hig_3b_met1}, {sbd_4b_met1, hig_4b_met1}}},
+    {"met2", {{sbd_2b_met2, hig_2b_met2}, {sbd_3b_met2, hig_3b_met2}, {sbd_4b_met2, hig_4b_met2}}},
+    {"met3", {{sbd_2b_met3, hig_2b_met3}, {sbd_3b_met3, hig_3b_met3}, {sbd_4b_met3, hig_4b_met3}}}
+    // {"met0", {{sbd_2b_met0, sbd_3b_met0, sbd_4b_met0},
+    // 	      {hig_2b_met0, hig_3b_met0, hig_4b_met0}}},
+    // {"met1", {{sbd_2b_met1, sbd_3b_met1, sbd_4b_met1},
+    // 	      {hig_2b_met1, hig_3b_met1, hig_4b_met1}}},
+    // {"met2", {{sbd_2b_met2, sbd_3b_met2, sbd_4b_met2},
+    // 	      {hig_2b_met2, hig_3b_met2, hig_4b_met2}}},
+    // {"met3", {{sbd_2b_met3, sbd_3b_met3, sbd_4b_met3},
+    // 	      {hig_2b_met3, hig_3b_met3, hig_4b_met3}}}
   };
 
-  //// Parsing the gluino and LSP masses
+     //// Parsing the gluino and LSP masses
   int mglu, mlsp;
   parseMasses(sigfile, mglu, mlsp);
   string glu_lsp("mGluino-"+to_string(mglu)+"_mLSP-"+to_string(mlsp));
@@ -176,7 +181,7 @@ int main(int argc, char *argv[]){
   set<Block> *pblocks(&blocks_abcd);
 
   string sysfolder = "/net/cms27/cms27r0/babymaker/sys/2017_02_26/TChiHH/";
-  string sysfile(sysfolder+"/sys_SMS-TChiHH_mGluino-"+to_string(mglu)+"_mLSP-1_35p9ifb.txt");
+  if(sysfile=="default") sysfile = sysfolder+"/sys_SMS-TChiHH_mGluino-"+to_string(mglu)+"_mLSP-1_35p9ifb.txt";
   
   // If systematic file does not exist, complain
   struct stat buffer;   
@@ -199,6 +204,7 @@ int main(int argc, char *argv[]){
   if(sig_strength-floor(sig_strength)>0) digits = 1;
   TString sig_s = "_sig"+RoundNumber(sig_strength,digits); sig_s.ReplaceAll(".","p");
   TString outname(outfolder+"wspace_TChiHH_"+glu_lsp+"_xsecNom_nb"+nb_bins+lumi_s+sig_s+".root");
+  if(!do_syst) outname.ReplaceAll("wspace_","wspace_nosys_");
   if(!use_r4) outname.ReplaceAll("wspace_","wspace_nor4_");
 
   float rmax = 20.;
@@ -251,18 +257,22 @@ void GetOptions(int argc, char *argv[]){
       {"toys", required_argument, 0, 0},
       {"sig_strength", required_argument, 0, 'g'},
       {"outfolder", required_argument, 0, 'o'},
+      {"sysfile", required_argument, 0, 's'},
       {0, 0, 0, 0}
     };
 
     char opt = -1;
     int option_index;
-    opt = getopt_long(argc, argv, "f:l:b:u:k4g:o:", long_options, &option_index);
+    opt = getopt_long(argc, argv, "f:l:b:u:k4g:o:s:", long_options, &option_index);
     if( opt == -1) break;
 
     string optname;
     switch(opt){
     case 'l':
       lumi = atof(optarg);
+      break;
+    case 's':
+      sysfile = optarg;
       break;
     case 'b':
       nb_bins = optarg;

@@ -18,6 +18,8 @@
 #include "TPad.h"
 #include "TLegend.h"
 #include "TColor.h"
+#include "TH2D.h"
+#include "TStyle.h"
 
 #include "RooArgList.h"
 #include "RooArgSet.h"
@@ -34,6 +36,7 @@ namespace{
   string name_wspace("w");
   bool table_clean(false);
   int toy_num(-1);
+  bool r4_only(false);
 }
 
 int main(int argc, char *argv[]){
@@ -82,10 +85,11 @@ int main(int argc, char *argv[]){
     PrintTable(*w, *fit_b, ChangeExtension(file_wspace, "_bkg_table.tex"));
     //MakeYieldPlot(*w, *fit_b, ChangeExtension(file_wspace, "_bkg_plot.pdf"));
     //if(!Contains(file_wspace, "nokappa")) MakeCorrectionPlot(*w, *fit_b, ChangeExtension(file_wspace, "_bkg_correction.pdf"));
+    MakeCovarianceMatrix(*w, *fit_b, ChangeExtension(file_wspace, "_bkg_covar.pdf"));
   }
   if(fit_s != nullptr){
     //PrintDebug(*w, *fit_s, ChangeExtension(file_wspace, "_sig_debug.tex"));
-    PrintTable(*w, *fit_s, ChangeExtension(file_wspace, "_sig_table.tex"));
+    //PrintTable(*w, *fit_s, ChangeExtension(file_wspace, "_sig_table.tex"));
     //MakeYieldPlot(*w, *fit_s, ChangeExtension(file_wspace, "_sig_plot.pdf"));
     //if(!Contains(file_wspace, "nokappa")) MakeCorrectionPlot(*w, *fit_s, ChangeExtension(file_wspace, "_sig_correction.pdf"));
   }
@@ -193,7 +197,8 @@ void PrintTable(RooWorkspace &w,
   vector<string> prc_names = GetProcessNames(w);
   vector<string> bin_names = GetPlainBinNames(w);
 
-  bool dosig(Contains(file_name, "sig_table")), blind_all(Contains(file_name, "r4blinded"));
+  bool dosig(Contains(file_name, "sig_table"));
+  bool blind_all(Contains(file_name, "r4blinded"));
   bool blind_2b(Contains(file_name, "1bunblinded"));
   size_t digits(2), ncols(10);
   if(!dosig) ncols = 8;
@@ -258,8 +263,10 @@ void PrintTable(RooWorkspace &w,
     if(dosig) out << "$" << GetBkgPred(w, bin_name) << "\\pm" << GetBkgPredErr(w, f, bin_name) <<  "$ & ";
     out << GetMCYield(w, bin_name, sig_name) << " & ";
     if(dosig) out << "$" << GetSigPred(w, bin_name) << "\\pm" << GetSigPredErr(w, f, bin_name) <<  "$ & ";
-    out << "$" << GetTotPred(w, bin_name) << "^{+" << GetTotPredErr(w, f, bin_name,1) 
-	<<"}_{-"<< GetTotPredErr(w, f, bin_name,-1) <<  "}$ & ";
+    if(!Contains(file_wspace, "nor4") || (Contains(bin_name, "hig_3b")||Contains(bin_name, "hig_4b")))
+      out << "$" << GetTotPred(w, bin_name) << "^{+" << GetTotPredErr(w, f, bin_name,1) 
+	  <<"}_{-"<< GetTotPredErr(w, f, bin_name,-1) <<  "}$";
+    out<<" & ";
     if(Contains(bin_name,"4") && (blind_all || (!Contains(bin_name,"1b") && blind_2b))) out << "-- & ";
     else out << setprecision(0) << GetObserved(w, bin_name);
     out << setprecision(digits);
@@ -1020,6 +1027,198 @@ void MakeCorrectionPlot(RooWorkspace &w,
   c.Print(file_name.c_str());
 }
 
+void MakeCovarianceMatrix(RooWorkspace &w,
+			  const RooFitResult &f,
+			  string covar_file_name){
+  SetVariables(w, f);
+  const RooArgList &fpf = f.floatParsFinal();
+
+  // Make list of parameter instances of cloneFunc in order of error matrix
+  RooArgList paramList;
+  vector<int> fpf_idx;
+
+  vector<RooAbsReal*> yields;
+  RooArgSet funcs = w.allFunctions();
+  TIter iter(funcs.createIterator());
+  int size = funcs.getSize();
+  RooAbsReal *arg = nullptr;
+  int i = 0;
+  while((arg = static_cast<RooAbsReal*>(iter())) && i < size){
+    ++i;
+    if(arg == nullptr) continue;
+    string name = arg->GetName();
+    if(name.substr(0,9) != "nbkg_BLK_") continue;
+    if(!Contains(name, "_BIN_")) continue;
+    if(Contains(name, "_PRC_")) continue;
+    if(r4_only && !(Contains(name, "hig_3b")||Contains(name, "hig_4b"))) continue;
+    yields.push_back(arg);
+  }
+
+  vector<vector<double> > errors(fpf.getSize(), vector<double>(yields.size(), 0.));
+  for(Int_t iparam = 0; iparam<fpf.getSize(); ++iparam){
+    RooRealVar &rrv2 = static_cast<RooRealVar&>(*w.var(fpf.at(iparam)->GetName()));
+    RooRealVar &rrv = static_cast<RooRealVar&>(fpf[iparam]);
+
+    double cenVal = rrv.getVal();
+    double minVal = rrv.getMin();
+    double maxVal = rrv.getMax();
+    double downVal = cenVal-fabs(rrv.getErrorLo());
+    double upVal = cenVal+fabs(rrv.getErrorHi());
+
+    string parname = rrv.GetName();
+    // if(Contains(parname, "rx21_BLK_met3") || Contains(parname, "rx31_BLK_met3")){
+    //   cout<<iparam<<" - "<<parname<<": cenVal "<<setw(12)<<cenVal<<", Hi "<<setw(12)<< rrv.getErrorHi()
+    // 	  <<", Lo "<<setw(12)<<rrv.getErrorLo()
+    // 	  <<", upVal "<<setw(12)<<upVal
+    // 	  <<", downVal "<<setw(12)<<downVal<<", minVal "<<setw(12)<<minVal<<", maxVal "<<setw(12)<<maxVal<<endl;
+    // }
+
+    if(upVal-downVal >= maxVal-minVal){
+      //Error bars bigger than variable range
+      downVal = minVal;
+      upVal = maxVal;
+    }else if(downVal < minVal){
+      upVal += minVal - downVal;
+      downVal = minVal;
+    }else if(upVal > maxVal){
+      downVal -= upVal - maxVal;
+      upVal = maxVal;
+    }
+
+    // /// Adam's original
+    // rrv.setVal(upVal);
+    // for(size_t iyield = 0; iyield<yields.size(); ++iyield){
+    //   errors.at(iparam).at(iyield) = 0.5*yields.at(iyield)->getVal();
+    // }
+    // rrv.setVal(downVal);
+    // for(size_t iyield = 0; iyield<yields.size(); ++iyield){
+    //   errors.at(iparam).at(iyield) -= 0.5*yields.at(iyield)->getVal();
+    // }
+    // rrv.setVal(cenVal);
+
+    /// Up variation
+    rrv2.setVal(upVal);
+    for(size_t iyield = 0; iyield<yields.size(); ++iyield){
+      errors.at(iparam).at(iyield) = yields.at(iyield)->getVal();
+    }
+    rrv2.setVal(cenVal);
+    for(size_t iyield = 0; iyield<yields.size(); ++iyield){
+      errors.at(iparam).at(iyield) -= yields.at(iyield)->getVal();
+      // if(Contains(parname, "BLK_met1") || Contains(parname, "BLK_met2") || Contains(parname, "BLK_met3")){
+      // 	cout<<iparam<<" - "<<parname<<", Iyield "<<iyield<<": error "<<setw(12)<<errors.at(iparam).at(iyield)
+      // 	    <<", val "<<setw(12)<<yields.at(iyield)->getVal()<<endl;
+      // }
+    }
+    rrv2.setVal(cenVal);
+  }
+
+  vector<vector<double> > right(fpf.getSize(), vector<double>(yields.size(), 0.));
+  for(Int_t iparam = 0; iparam<fpf.getSize(); ++iparam){
+    for(size_t iyield = 0; iyield<yields.size(); ++iyield){
+      right.at(iparam).at(iyield) = 0.;
+      for(Int_t entry = 0; entry<fpf.getSize(); ++entry){
+	right.at(iparam).at(iyield) += f.correlation(fpf.at(iparam)->GetName(),fpf.at(entry)->GetName())
+	  * errors.at(entry).at(iyield);
+      }
+    }
+  }
+
+  vector<vector<double> > covar(yields.size(), vector<double>(yields.size(), 0.));
+  for(size_t irow = 0; irow < yields.size(); ++irow){
+    for(size_t icol = 0.; icol < yields.size(); ++icol){
+      covar.at(irow).at(icol) = 0.;
+      for(Int_t ientry = 0.; ientry < fpf.getSize(); ++ientry){
+	// if(((irow==4&&icol==5) || (irow==6&&icol==7)) && 
+	//    fabs(errors.at(ientry).at(irow) * right.at(ientry).at(icol))>0.0001)
+	//   cout<<irow<<", "<<icol<<" - entry "<<ientry<<": error "<<setw(12)<<errors.at(ientry).at(irow)
+	//       <<", right "<<setw(12)<<right.at(ientry).at(icol)
+	//       <<" -> prod = "<<setw(12)<<errors.at(ientry).at(irow) * right.at(ientry).at(icol)<<endl;
+	covar.at(irow).at(icol) += errors.at(ientry).at(irow) * right.at(ientry).at(icol);
+      }
+    }
+  }
+
+  TH2D h_covar("", "Covariance Matrix",
+	       covar.size(), -0.5, covar.size()-0.5,
+	       covar.size(), -0.5, covar.size()-0.5);
+  TH2D h_corr("", "Correlation Matrix",
+	      covar.size(), -0.5, covar.size()-0.5,
+	      covar.size(), -0.5, covar.size()-0.5);
+  float labelSize = 0.05, markerSize = 1.7;
+  h_covar.SetLabelSize(labelSize, "xy");
+  h_covar.SetMarkerSize(markerSize);
+  h_covar.SetTickLength(0., "xy");
+  h_corr.SetLabelSize(labelSize, "xy");
+  h_corr.SetMarkerSize(markerSize);
+  h_corr.SetTickLength(0., "xy");
+  for(size_t x = 0; x < yields.size(); ++x){
+    string name = yields.at(x)->GetName();
+    auto pos = name.find("_BIN_");
+    name = name.substr(pos+5);
+    name = PrettyBinName(name);
+    h_covar.GetXaxis()->SetBinLabel(x+1, name.c_str());
+    h_covar.GetYaxis()->SetBinLabel(x+1, name.c_str());
+    h_corr.GetXaxis()->SetBinLabel(x+1, name.c_str());
+    h_corr.GetYaxis()->SetBinLabel(x+1, name.c_str());
+    for(size_t y = 0; y < yields.size(); ++y){
+      h_covar.SetBinContent(x+1,y+1,covar.at(x).at(y));
+      h_corr.SetBinContent(x+1,y+1,covar.at(x).at(y)/sqrt(covar.at(x).at(x)*covar.at(y).at(y)));
+    }
+  }
+  h_covar.LabelsOption("vd","X");
+  h_corr.LabelsOption("vd","X");
+  h_corr.SetMinimum(-1.);
+  h_corr.SetMaximum(1.);
+
+  const unsigned num = 3;
+  const int bands = 255;
+  int colors[bands];
+  double stops[num] = {0., 0.5, 1.};
+  double red[num] =   {0.8, 1., 140/255.};
+  double green[num] = {0., 1., 203/255.};
+  double blue[num] =  {0., 1., 69/255.};
+  int fi = TColor::CreateGradientColorTable(num, stops, red, green, blue, bands);
+  for(int ib = 0; ib < bands; ++ib){
+    colors[ib] = fi+ib;
+  }
+  gStyle->SetNumberContours(bands);
+  gStyle->SetPalette(bands, colors);
+
+  TCanvas c("", "", 1024, 700);
+  c.SetMargin(0.2, 0.09, 0.15, 0.02);
+  gStyle->SetPaintTextFormat("6.1f");
+  h_covar.SetTitle(""); h_corr.SetTitle("");
+  h_covar.Draw("axis");
+  h_corr.Draw("col same");
+  h_covar.Draw("text same");
+  c.Print(covar_file_name.c_str());
+  gStyle->SetPaintTextFormat("6.2f");
+  c.SetLogz(false);
+  h_corr.Draw("col");
+  h_corr.Draw("text same");
+  ReplaceAll(covar_file_name, "_covar.pdf", "_corr.pdf");
+  c.Print(covar_file_name.c_str());
+}
+
+string PrettyBinName(string name){
+  // ReplaceAll(name, "sbd_", "SBD, ");
+  // ReplaceAll(name, "hig_", "HIG, ");
+  ReplaceAll(name, "sbd_", "SBD, ");
+  ReplaceAll(name, "hig_", "");
+  ReplaceAll(name, "2b_", "2b, ");
+  ReplaceAll(name, "3b_", "3b, ");
+  ReplaceAll(name, "4b_", "4b, ");
+  // ReplaceAll(name, "met0", "150<E_{T}^{miss}#leq 200");
+  // ReplaceAll(name, "met1", "200<E_{T}^{miss}#leq 300");
+  // ReplaceAll(name, "met2", "300<E_{T}^{miss}#leq 450");
+  // ReplaceAll(name, "met3", "E_{T}^{miss}>450");
+  ReplaceAll(name, "met0", "150<MET<200");
+  ReplaceAll(name, "met1", "200<MET<300");
+  ReplaceAll(name, "met2", "300<MET<450");
+  ReplaceAll(name, "met3", "MET>450");
+  return name;
+}
+
 double GetError(const RooAbsReal &var,
                 const RooFitResult &f, int errtype){
   // Clone self for internal use
@@ -1062,9 +1261,9 @@ double GetError(const RooAbsReal &var,
     double down = cloneFunc->getVal(nset);
 
     // string parname = rrv.GetName();
-    // if(Contains(parname, "ry21_BLK_met3") || Contains(parname, "rx21_BLK_met3") || Contains(parname, "rx31_BLK_met3")){
-    //   cout<<name<<" "<<ivar<<" - "<<parname<<": cenVal "<<setw(12)<<cenVal<<", errVal "<<setw(12)<<errVal<<", up "<<setw(12)<<up
-    // 	  <<", down "<<setw(12)<<down<<", errtype "<<setw(12)<<errtype<<endl;
+    // if(Contains(parname, "rx21_BLK_met3") || Contains(parname, "rx31_BLK_met3")){
+    //   cout<<name<<" "<<ivar<<" - "<<parname<<": cenVal "<<setw(12)<<cenVal<<", errVal "<<setw(12)<<errVal
+    // 	  <<", up "<<setw(12)<<up<<", down "<<setw(12)<<down<<", errtype "<<setw(12)<<errtype<<endl;
     // }
 
     errors.at(ivar) = (up-down);
@@ -1074,20 +1273,20 @@ double GetError(const RooAbsReal &var,
   // cout<<endl;
 
   // bool print_corr = false;
-  // if(name.substr(0,9) == "nexp_BLK_" && Contains(name, "_BIN_hig_4b_met3") && !Contains(name, "_PRC_")){
+  // if(name.substr(0,9) == "nexp_BLK_" && Contains(name, "_BIN_hig_4b_met") && !Contains(name, "_PRC_")){
   //      cout<<"Doing hig_4b_met3 = "<<var.getVal() <<endl;
   //      print_corr = true;
-  //    }
+  // }
   vector<double> right(errors.size());
   for(size_t i = 0; i < right.size(); ++i){
     right.at(i) = 0.;
     for(size_t j = 0; j < errors.size(); ++j){
       right.at(i) += f.correlation(paramList.at(i)->GetName(),paramList.at(j)->GetName())*errors.at(j);
-      string par1 = paramList.at(i)->GetName(), par2 = paramList.at(j)->GetName();
+      // string par1 = paramList.at(i)->GetName(), par2 = paramList.at(j)->GetName();
       // if(print_corr && (Contains(par1, "rx") || Contains(par1, "ry") || Contains(par1, "norm"))
-      // 	 && (Contains(par2, "rx") || Contains(par2, "ry") || Contains(par2, "norm"))) cout<<setw(40)<<par1<<", "<<setw(40)<<par2
-      // 			 <<": corr = "
-      // 			 <<f.correlation(paramList.at(i)->GetName(),paramList.at(j)->GetName())<<endl;
+      // 	 && (Contains(par2, "rx") || Contains(par2, "ry") || Contains(par2, "norm"))) 
+      // 	cout<<setw(40)<<par1<<", "<<setw(40)<<par2<<": corr = "
+      // 	    <<f.correlation(paramList.at(i)->GetName(),paramList.at(j)->GetName())<<endl;
     }
   }
   double sum = 0.;
@@ -1116,6 +1315,7 @@ void GetOptionsExtract(int argc, char *argv[]){
     static struct option long_options[] = {
       {"file_wspace", required_argument, 0, 'f'},
       {"name_wspace", required_argument, 0, 'w'},
+      {"r4_only", no_argument, 0, '4'},
       {"toy", required_argument, 0, 't'},
       {"table_clean", no_argument, 0, 'c'},
       {0, 0, 0, 0}
@@ -1123,7 +1323,7 @@ void GetOptionsExtract(int argc, char *argv[]){
 
     char opt = -1;
     int option_index;
-    opt = getopt_long(argc, argv, "f:w:t:c", long_options, &option_index);
+    opt = getopt_long(argc, argv, "f:w:t:c4", long_options, &option_index);
     if( opt == -1) break;
 
     string optname;
@@ -1133,6 +1333,9 @@ void GetOptionsExtract(int argc, char *argv[]){
       break;
     case 'f':
       file_wspace = optarg;
+      break;
+    case '4':
+      r4_only = true;
       break;
     case 't':
       toy_num = atoi(optarg);
