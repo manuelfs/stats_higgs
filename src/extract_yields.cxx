@@ -20,6 +20,7 @@
 #include "TColor.h"
 #include "TH2D.h"
 #include "TStyle.h"
+#include "TLatex.h"
 
 #include "RooArgList.h"
 #include "RooArgSet.h"
@@ -48,12 +49,12 @@ int main(int argc, char *argv[]){
 
   ostringstream command;
   command << "export blah=$(pwd); "
-          << "cd ~/cmssw/CMSSW_7_1_5/src; "
+          << "cd ~/cmssw/CMSSW_7_4_14/src; "
           << "eval `scramv1 runtime -sh`; "
           << "cd $blah; "
           << "cp " << file_wspace << ' ' << workdir << "; "
           << "cd " << workdir << "; "
-          << "combine -M MaxLikelihoodFit --saveWorkspace --saveWithUncertainties --minos=all -w " << name_wspace << " --dataset data_obs";
+          << "combine -M MaxLikelihoodFit --forceRecreateNLL --saveWorkspace --saveWithUncertainties --minos=all  -w " << name_wspace << " --dataset data_obs";
   if(toy_num >= 0) command << "_" << toy_num;
   command << " " << file_wspace << "; "
           << "cd $blah; "
@@ -61,8 +62,8 @@ int main(int argc, char *argv[]){
   cout << "Executing " << command.str() << endl;
   execute(command.str());
 
-  styles style("RA4");
-  style.setDefaultStyle();
+  //styles style("RA4");
+  //style.setDefaultStyle();
 
   string w_name("higgsCombineTest.MaxLikelihoodFit.mH120.root");
   w_name = workdir+'/'+w_name;
@@ -89,7 +90,7 @@ int main(int argc, char *argv[]){
   }
   if(fit_s != nullptr){
     //PrintDebug(*w, *fit_s, ChangeExtension(file_wspace, "_sig_debug.tex"));
-    //PrintTable(*w, *fit_s, ChangeExtension(file_wspace, "_sig_table.tex"));
+    PrintTable(*w, *fit_s, ChangeExtension(file_wspace, "_sig_table.tex"));
     //MakeYieldPlot(*w, *fit_s, ChangeExtension(file_wspace, "_sig_plot.pdf"));
     //if(!Contains(file_wspace, "nokappa")) MakeCorrectionPlot(*w, *fit_s, ChangeExtension(file_wspace, "_sig_correction.pdf"));
   }
@@ -1059,11 +1060,12 @@ void MakeCovarianceMatrix(RooWorkspace &w,
     RooRealVar &rrv2 = static_cast<RooRealVar&>(*w.var(fpf.at(iparam)->GetName()));
     RooRealVar &rrv = static_cast<RooRealVar&>(fpf[iparam]);
 
+    double lambda = 0.01;
     double cenVal = rrv.getVal();
     double minVal = rrv.getMin();
     double maxVal = rrv.getMax();
-    double downVal = cenVal-fabs(rrv.getErrorLo());
-    double upVal = cenVal+fabs(rrv.getErrorHi());
+    double downVal = cenVal-lambda*fabs(rrv.getErrorLo());
+    double upVal = cenVal+lambda*fabs(rrv.getErrorHi());
 
     string parname = rrv.GetName();
     // if(Contains(parname, "rx21_BLK_met3") || Contains(parname, "rx31_BLK_met3")){
@@ -1099,11 +1101,11 @@ void MakeCovarianceMatrix(RooWorkspace &w,
     /// Up variation
     rrv2.setVal(upVal);
     for(size_t iyield = 0; iyield<yields.size(); ++iyield){
-      errors.at(iparam).at(iyield) = yields.at(iyield)->getVal();
+      errors.at(iparam).at(iyield) = yields.at(iyield)->getVal()/lambda;
     }
     rrv2.setVal(cenVal);
     for(size_t iyield = 0; iyield<yields.size(); ++iyield){
-      errors.at(iparam).at(iyield) -= yields.at(iyield)->getVal();
+      errors.at(iparam).at(iyield) -= yields.at(iyield)->getVal()/lambda;
       // if(Contains(parname, "BLK_met1") || Contains(parname, "BLK_met2") || Contains(parname, "BLK_met3")){
       // 	cout<<iparam<<" - "<<parname<<", Iyield "<<iyield<<": error "<<setw(12)<<errors.at(iparam).at(iyield)
       // 	    <<", val "<<setw(12)<<yields.at(iyield)->getVal()<<endl;
@@ -1144,7 +1146,7 @@ void MakeCovarianceMatrix(RooWorkspace &w,
   TH2D h_corr("", "Correlation Matrix",
 	      covar.size(), -0.5, covar.size()-0.5,
 	      covar.size(), -0.5, covar.size()-0.5);
-  float labelSize = 0.05, markerSize = 1.7;
+  float labelSize = 0.05, markerSize = 1.9;
   h_covar.SetLabelSize(labelSize, "xy");
   h_covar.SetMarkerSize(markerSize);
   h_covar.SetTickLength(0., "xy");
@@ -1174,9 +1176,9 @@ void MakeCovarianceMatrix(RooWorkspace &w,
   const int bands = 255;
   int colors[bands];
   double stops[num] = {0., 0.5, 1.};
-  double red[num] =   {0.8, 1., 140/255.};
-  double green[num] = {0., 1., 203/255.};
-  double blue[num] =  {0., 1., 69/255.};
+  double red[num] =   {207/255., 1., 137/255.};
+  double green[num] = {131/255., 1., 162/255.};
+  double blue[num] =  {132/255., 1., 215/255.};
   int fi = TColor::CreateGradientColorTable(num, stops, red, green, blue, bands);
   for(int ib = 0; ib < bands; ++ib){
     colors[ib] = fi+ib;
@@ -1184,20 +1186,38 @@ void MakeCovarianceMatrix(RooWorkspace &w,
   gStyle->SetNumberContours(bands);
   gStyle->SetPalette(bands, colors);
 
+  float LeftMargin = 0.2, RightMargin = 0.09, BottomMargin = 0.15, TopMargin = 0.07;
+  TString cmsPrel = "#font[62]{CMS} #scale[0.8]{#font[52]{Preliminary}}";
+  TString lumiEner = "#font[42]{35.9 fb^{-1} (13 TeV)}"; 
+  TLatex cmslabel;  
+  cmslabel.SetNDC(kTRUE);
+
+  gStyle->SetOptStat(0);              // No Stats box
   TCanvas c("", "", 1024, 700);
-  c.SetMargin(0.2, 0.09, 0.15, 0.02);
+  c.SetMargin(LeftMargin, RightMargin, BottomMargin, TopMargin);
   gStyle->SetPaintTextFormat("6.1f");
   h_covar.SetTitle(""); h_corr.SetTitle("");
+  h_covar.GetXaxis()->SetLabelOffset(0.0085);
+  h_corr.GetXaxis()->SetLabelOffset(0.0085);
   h_covar.Draw("axis");
   h_corr.Draw("col same");
   h_covar.Draw("text same");
-  c.Print(covar_file_name.c_str());
+  cmslabel.SetTextAlign(11); cmslabel.SetTextSize(0.06);
+  cmslabel.DrawLatex(LeftMargin+0.005, 1-TopMargin+0.015, cmsPrel);
+  cmslabel.SetTextAlign(31); cmslabel.SetTextSize(0.056);
+  cmslabel.DrawLatex(1-RightMargin-0.005, 1-TopMargin+0.015, lumiEner);
+  c.SaveAs(covar_file_name.c_str());
+
   gStyle->SetPaintTextFormat("6.2f");
   c.SetLogz(false);
   h_corr.Draw("col");
   h_corr.Draw("text same");
   ReplaceAll(covar_file_name, "_covar.pdf", "_corr.pdf");
-  c.Print(covar_file_name.c_str());
+  cmslabel.SetTextAlign(11); cmslabel.SetTextSize(0.06);
+  cmslabel.DrawLatex(LeftMargin+0.005, 1-TopMargin+0.015, cmsPrel);
+  cmslabel.SetTextAlign(31); cmslabel.SetTextSize(0.056);
+  cmslabel.DrawLatex(1-RightMargin-0.005, 1-TopMargin+0.015, lumiEner);
+  c.SaveAs(covar_file_name.c_str());
 }
 
 string PrettyBinName(string name){
@@ -1208,14 +1228,14 @@ string PrettyBinName(string name){
   ReplaceAll(name, "2b_", "2b, ");
   ReplaceAll(name, "3b_", "3b, ");
   ReplaceAll(name, "4b_", "4b, ");
-  // ReplaceAll(name, "met0", "150<E_{T}^{miss}#leq 200");
-  // ReplaceAll(name, "met1", "200<E_{T}^{miss}#leq 300");
-  // ReplaceAll(name, "met2", "300<E_{T}^{miss}#leq 450");
-  // ReplaceAll(name, "met3", "E_{T}^{miss}>450");
-  ReplaceAll(name, "met0", "150<MET<200");
-  ReplaceAll(name, "met1", "200<MET<300");
-  ReplaceAll(name, "met2", "300<MET<450");
-  ReplaceAll(name, "met3", "MET>450");
+  ReplaceAll(name, "met0", "150<E_{T}^{miss}#leq 200");
+  ReplaceAll(name, "met1", "200<E_{T}^{miss}#leq 300");
+  ReplaceAll(name, "met2", "300<E_{T}^{miss}#leq 450");
+  ReplaceAll(name, "met3", "E_{T}^{miss}>450");
+  // ReplaceAll(name, "met0", "150<MET<200");
+  // ReplaceAll(name, "met1", "200<MET<300");
+  // ReplaceAll(name, "met2", "300<MET<450");
+  // ReplaceAll(name, "met3", "MET>450");
   return name;
 }
 
