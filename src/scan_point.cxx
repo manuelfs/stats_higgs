@@ -49,9 +49,9 @@ int main(int argc, char *argv[]){
   else xsec::stopCrossSection(mglu, xsec, xsec_unc);
   string glu_lsp("mGluino-"+to_string(mglu)+"_mLSP-"+to_string(mlsp));
 
-  //string workdir = MakeDir("scan_point_"+glu_lsp);
-  string workdir = "scan_point_"+model+"_"+glu_lsp+"/";
-  gSystem->mkdir(workdir.c_str(), kTRUE);
+  string workdir = MakeDir("scan_point_"+glu_lsp);
+  //string workdir = "scan_point_"+model+"_"+glu_lsp+"/";
+  //gSystem->mkdir(workdir.c_str(), kTRUE);
  
   ostringstream command;
   string done = " < /dev/null &> /dev/null; ";
@@ -61,6 +61,9 @@ int main(int argc, char *argv[]){
   string down_file_name = file_name; ReplaceAll(down_file_name, "xsecNom", "xsecDown");
   command
     << "export origdir=$(pwd); "
+    << "cd ~/cmssw/CMSSW_7_4_14/src; "
+    << "eval `scramv1 runtime -sh`; "
+    << "cd $origdir; "
     << "ln -s $(readlink -f " << file_name << ") " << workdir << done
     << "ln -s $(readlink -f " << up_file_name << ") " << workdir << done
     << "ln -s $(readlink -f " << down_file_name << ") " << workdir << done
@@ -70,9 +73,9 @@ int main(int argc, char *argv[]){
     << "combine -M Asymptotic --run observed --name Down " << GetBaseName(down_file_name) << done;
   if(do_signif){
     command
-      << "combine -M ProfileLikelihood --significance --expectSignal=1 --verbose=999999 " << GetBaseName(file_name)
+      << "combine -M ProfileLikelihood --significance --expectSignal=1 --verbose=999999 --rMin=-10. --uncapped=1 " << GetBaseName(file_name)
       << " < /dev/null &> signif_obs.log; "
-      << "combine -M ProfileLikelihood --significance --expectSignal=1 -t -1 --verbose=999999 " << GetBaseName(file_name)
+      << "combine -M ProfileLikelihood --significance --expectSignal=1 -t -1 --verbose=999999 --rMin=-10. --uncapped=1 " << GetBaseName(file_name)
       << " < /dev/null &> signif_exp.log; ";
   }
   command << flush;
@@ -131,7 +134,7 @@ int main(int argc, char *argv[]){
     sig_exp = GetSignif(workdir+"/signif_exp.log");
   }
 
-  //execute("rm -rf "+workdir);
+  execute("rm -rf "+workdir);
 
   cout
     << setprecision(numeric_limits<double>::max_digits10)
@@ -232,7 +235,7 @@ void GetOptions(int argc, char *argv[]){
       file_name = optarg;
       break;
     case 's':
-      do_signif = true;
+      do_signif = false;
       break;
     default:
       cerr << "Bad option! getopt_long returned character code " << static_cast<int>(opt) << endl;

@@ -1147,6 +1147,10 @@ void MakeCovarianceMatrix(RooWorkspace &w,
 	      covar.size(), -0.5, covar.size()-0.5,
 	      covar.size(), -0.5, covar.size()-0.5);
   float labelSize = 0.05, markerSize = 1.9;
+  if(!r4_only) {
+    labelSize = 0.02;
+    markerSize = 0.9;
+  }
   h_covar.SetLabelSize(labelSize, "xy");
   h_covar.SetMarkerSize(markerSize);
   h_covar.SetTickLength(0., "xy");

@@ -52,6 +52,9 @@ public:
   double GetRMax() const;
   WorkspaceGenerator & SetRMax(double rmax);
 
+  bool UseGausApprox() const;
+  WorkspaceGenerator & UseGausApprox(bool use_gaus_approx);
+
   GammaParams GetYield(const YieldKey &key) const;
   GammaParams GetYield(const Bin &bin,
                        const Process &process,
@@ -61,12 +64,19 @@ public:
 
   size_t AddToys(size_t num_toys = 0);
 
+  const Process & GetInjectionModel() const;
+  WorkspaceGenerator & SetInjectionModel(const Process &injection);
+  bool GetDefaultInjectionModel() const;
+  WorkspaceGenerator & SetDefaultInjectionModel();
+
   friend std::ostream & operator<<(std::ostream& stream, const WorkspaceGenerator &wg);
 
 private:
   Cut baseline_;
   std::set<Process> backgrounds_;
   Process signal_, data_;
+  Process injection_;
+  bool inject_other_signal_;
   std::set<Block> blocks_;
   std::map<std::string, double> obs_vals_;
   std::map<std::string, std::poisson_distribution<> > obs_gens_;
@@ -83,6 +93,7 @@ private:
   bool do_dilepton_;
   bool do_mc_kappa_correction_;
   size_t num_toys_;
+  bool gaus_approx_;
   mutable bool w_is_valid_;
 
   static YieldManager yields_;
@@ -120,12 +131,17 @@ private:
   void AddFullBackgroundPredictions(const Block &block);
   void AddSignalPredictions(const Block &block);
   void AddPdfs(const Block &block);
+  void AddDebug(const Block &block);
   void AddDummyNuisance();
   void AddFullPdf();
   void AddParameterSets();
   void DefineParameterSet(const std::string &cat_name,
                           const std::set<std::string> &var_names);
   void AddModels();
+  void AddPoisson(const std::string &pdf_name,
+		  const std::string &n_name,
+		  const std::string &mu_name,
+		  bool allow_approx);
   void PrintComparison(std::ostream &stream, const Bin &bin,
                        const Process &process, const Block &block) const;
 };

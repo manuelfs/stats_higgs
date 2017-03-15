@@ -36,6 +36,7 @@ namespace{
   bool do_syst = true;
   bool use_r4 = true;
   bool deep = true;
+  bool use_pois = true;
   unsigned n_toys = 0;
   string sysfile = "default";
   string outfolder = "";
@@ -209,6 +210,7 @@ int main(int argc, char *argv[]){
 
   float rmax = 20.;
   WorkspaceGenerator wgNom(*pbaseline, *pblocks, backgrounds, signal, data, sysfile, use_r4, sig_strength, 1.);
+  wgNom.UseGausApprox(!use_pois);
   wgNom.SetRMax(rmax);
   wgNom.SetKappaCorrected(!no_kappa);
   wgNom.SetDoSystematics(do_syst);
@@ -219,6 +221,7 @@ int main(int argc, char *argv[]){
 
   outname.ReplaceAll("Nom", "Up");
   WorkspaceGenerator wgUp(*pbaseline, *pblocks, backgrounds, signal, data, sysfile, use_r4, sig_strength, 1+xsec_unc);
+  wgUp.UseGausApprox(!use_pois);
   wgUp.SetRMax(rmax);
   wgUp.SetKappaCorrected(!no_kappa);
   wgUp.SetDoSystematics(do_syst);
@@ -229,6 +232,7 @@ int main(int argc, char *argv[]){
 
   outname.ReplaceAll("Up", "Down");
   WorkspaceGenerator wgDown(*pbaseline, *pblocks, backgrounds, signal, data, sysfile, use_r4, sig_strength, 1-xsec_unc);
+  wgDown.UseGausApprox(!use_pois);
   wgDown.SetRMax(rmax);
   wgDown.SetKappaCorrected(!no_kappa);
   wgDown.SetDoSystematics(do_syst);

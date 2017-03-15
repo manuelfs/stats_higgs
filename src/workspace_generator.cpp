@@ -35,6 +35,8 @@ WorkspaceGenerator::WorkspaceGenerator(const Cut &baseline,
   backgrounds_(backgrounds),
   signal_(signal),
   data_(data),
+  injection_(),
+  inject_other_signal_(false),
   blocks_(blocks),
   obs_vals_(),
   obs_gens_(),
@@ -55,6 +57,7 @@ WorkspaceGenerator::WorkspaceGenerator(const Cut &baseline,
   do_dilepton_(false),
   do_mc_kappa_correction_(true),
   num_toys_(0),
+  gaus_approx_(true),
   w_is_valid_(false){
   w_.cd();
 }
@@ -144,6 +147,15 @@ WorkspaceGenerator & WorkspaceGenerator::SetRMax(double rmax){
   return *this;
 }
 
+bool WorkspaceGenerator::UseGausApprox() const{
+  return gaus_approx_;
+}
+
+WorkspaceGenerator & WorkspaceGenerator::UseGausApprox(bool use_gaus_approx){
+  gaus_approx_ = use_gaus_approx;
+  return *this;
+}
+
 GammaParams WorkspaceGenerator::GetYield(const YieldKey &key) const{
   yields_.Luminosity() = luminosity_;
   return yields_.GetYield(key);
@@ -177,6 +189,31 @@ size_t WorkspaceGenerator::AddToys(size_t num_toys){
   ResetToys(obs);
   num_toys_ += num_toys;
   return num_toys_;
+}
+
+
+
+const Process & WorkspaceGenerator::GetInjectionModel() const{
+  if(inject_other_signal_){
+    return injection_;
+  }else{
+    return signal_;
+  }
+}
+
+WorkspaceGenerator & WorkspaceGenerator::SetInjectionModel(const Process &injection){
+  inject_other_signal_ = true;
+  injection_ = injection;
+  return *this;
+}
+
+bool WorkspaceGenerator::GetDefaultInjectionModel() const{
+  return inject_other_signal_;
+}
+
+WorkspaceGenerator & WorkspaceGenerator::SetDefaultInjectionModel(){
+  inject_other_signal_ = false;
+  return *this;
 }
 
 void WorkspaceGenerator::SetupToys(const RooArgSet &obs){
@@ -271,6 +308,7 @@ void WorkspaceGenerator::UpdateWorkspace(){
     AddFullBackgroundPredictions(block);
     AddSignalPredictions(block);
     AddPdfs(block);
+    AddDebug(block);
   }
 
   AddDummyNuisance();
@@ -491,8 +529,7 @@ void WorkspaceGenerator::AddSystematicsGenerators(){
           w_.factory(oss.str().c_str());
           oss.str("");
           oss << "expr::" << full_name
-              << "('exp(strength_" << full_name << "*" << syst.Name() << ")',"
-              << "strength_" << full_name << "," << syst.Name() << ")" << flush;
+              << "('exp(@0*@1)',strength_" << full_name << "," << syst.Name() << ")" << flush;
           w_.factory(oss.str().c_str());
         }
       }
@@ -510,8 +547,7 @@ void WorkspaceGenerator::AddSystematicsGenerators(){
       w_.factory(oss.str().c_str());
       oss.str("");
       oss << "expr::" << full_name
-          << "('exp(strength_" << full_name << "*" << syst.Name() << ")',"
-          << "strength_" << full_name << "," << syst.Name() << ")" << flush;
+          << "('exp(@0*@1)',strength_" << full_name << "," << syst.Name() << ")" << flush;
       w_.factory(oss.str().c_str());
     }
   }
@@ -529,8 +565,7 @@ void WorkspaceGenerator::AddSystematicsGenerators(){
             w_.factory(oss.str().c_str());
             oss.str("");
             oss << "expr::" << full_name
-                << "('exp(strength_" << full_name << "*" << syst.Name() << ")',"
-                << "strength_" << full_name << "," << syst.Name() << ")" << flush;
+                << "('exp(@0*@1)',strength_" << full_name << "," << syst.Name() << ")" << flush;
             w_.factory(oss.str().c_str());
           }
         }
@@ -557,7 +592,11 @@ void WorkspaceGenerator::AddData(const Block &block){
           gps += GetYield(bin, bkg);
         }
         // Injecting signal
-        gps += sig_strength_*GetYield(bin, signal_);
+	if(inject_other_signal_){
+	  gps += sig_strength_*GetYield(bin, injection_);
+	}else{
+	  gps += sig_strength_*GetYield(bin, signal_);
+	}
       }else{
         gps = GetYield(bin, data_);
       }
@@ -565,7 +604,7 @@ void WorkspaceGenerator::AddData(const Block &block){
       ostringstream oss;
       oss << "nobs_BLK_" << block.Name()
           << "_BIN_" << bin.Name() << flush;
-      if(use_r4_ || (!Contains(bin.Name(), "hig_3b") && !Contains(bin.Name(), "hig_4b")) ){
+      if(use_r4_ || (!Contains(bin.Name(), "hig_3b") && !Contains(bin.Name(), "hig_4b"))){
         Append(observables_, oss.str());
       }
       oss << "[" << gps.Yield() << "]" << flush;
@@ -580,9 +619,7 @@ void WorkspaceGenerator::AddBackgroundFractions(const Block &block){
     for(const auto &bin: vbin){
       for(const auto &bkg: backgrounds_){
         string var = "expr::frac_BIN_"+bin.Name()+"_PRC_"+bkg.Name()
-          +"('ymc_BLK_"+block.Name()+"_BIN_"+bin.Name()+"_PRC_"+bkg.Name()
-          +"/ymc_BLK_"+block.Name()+"_BIN_"+bin.Name()
-          +"',ymc_BLK_"+block.Name()+"_BIN_"+bin.Name()+"_PRC_"+bkg.Name()
+          +"('@0/@1',ymc_BLK_"+block.Name()+"_BIN_"+bin.Name()+"_PRC_"+bkg.Name()
           +",ymc_BLK_"+block.Name()+"_BIN_"+bin.Name()+")";
         w_.factory(var.c_str());
       }
@@ -600,7 +637,7 @@ void WorkspaceGenerator::AddABCDParameters(const Block &block){
   ostringstream oss;
   oss << "norm_BLK_" << block.Name() << flush;
   Append(nuisances_, oss.str());
-  oss << "[" << max(1., by.Total().Yield()) << ",0.,"
+  oss << "[" << max(1., 0.8*by.Total().Yield()) << ",0.,"
       << max(5.*by.Total().Yield(), 20.) << "]" << flush;
   w_.factory(oss.str().c_str());
   for(size_t irow = 0; irow < by.RowSums().size(); ++irow){
@@ -634,8 +671,7 @@ void WorkspaceGenerator::AddABCDParameters(const Block &block){
   w_.factory(oss.str().c_str());
   oss.str("");
   oss << "expr::rscale_BLK_" << block.Name()
-      << "('norm_BLK_" << block.Name() << "/rnorm_BLK_" << block.Name()
-      << "',norm_BLK_" << block.Name()
+      << "('@0/@1',norm_BLK_" << block.Name()
       << ",rnorm_BLK_" << block.Name() << ")" << flush;
   w_.factory(oss.str().c_str());
 }
@@ -712,7 +748,7 @@ void WorkspaceGenerator::AddMCYields(const Block & block){
         string bbp_name = bb_name + "_PRC_"+bkg.Name();
         oss.str("");
         oss << "nobsmc_" << bbp_name << flush;
-        Append(observables_, oss.str());
+        if(!gaus_approx_) Append(observables_, oss.str());
         oss << "[" << gp.NEffective() << "]" << flush;
         w_.factory(oss.str().c_str());
         oss.str("");
@@ -745,10 +781,7 @@ void WorkspaceGenerator::AddMCPdfs(const Block &block){
       Append(all_prcs, signal_);
       for(const auto &bkg: all_prcs){
         string bbp_name = "BLK_"+block.Name()+"_BIN_"+bin.Name()+"_PRC_"+bkg.Name();
-        w_.factory(("RooPoisson::pdf_mc_"+bbp_name
-                    +"(nobsmc_"+bbp_name
-                    +",nmc_"+bbp_name+")").c_str());
-        (static_cast<RooPoisson*>(w_.pdf(("pdf_mc_"+bbp_name).c_str())))->setNoRounding();
+	AddPoisson("pdf_mc_"+bbp_name, "nobsmc_"+bbp_name, "nmc_"+bbp_name, gaus_approx_);
         if(first) first = false;
         else factory_string += ",";
         factory_string += "pdf_mc_"+bbp_name;
@@ -835,11 +868,8 @@ void WorkspaceGenerator::AddMCPrediction(const Block &block){
     for(size_t icol = 0; icol < block.Bins().at(irow).size(); ++icol){
       const Bin &bin = block.Bins().at(irow).at(icol);
       ostringstream oss;
-      oss << "expr::predmc_BLK_" << block.Name() << "_BIN_" << bin.Name() << "('"
-          << "(rowmc" << (irow+1) << "_BLK_" << block.Name()
-          << "*colmc" << (icol+1) << "_BLK_" << block.Name()
-          << ")/totmc_BLK_" << block.Name()
-          << "',rowmc" << (irow+1) << "_BLK_" << block.Name()
+      oss << "expr::predmc_BLK_" << block.Name() << "_BIN_" << bin.Name() << "("
+          << "'(@0*@1)/@2',rowmc" << (irow+1) << "_BLK_" << block.Name()
           << ",colmc" << (icol+1) << "_BLK_" << block.Name()
           << ",totmc_BLK_" << block.Name() << ")" << flush;
       w_.factory(oss.str().c_str());
@@ -854,10 +884,8 @@ void WorkspaceGenerator::AddMCKappa(const Block &block){
       const Bin &bin = block.Bins().at(irow).at(icol);
       string bb_name = "BLK_"+block.Name()+"_BIN_"+bin.Name();
       ostringstream oss;
-      oss << "expr::kappamc_" << bb_name << "('"
-          << "ymc_" << bb_name
-          << "/predmc_" << bb_name
-          << "',ymc_" << bb_name
+      oss << "expr::kappamc_" << bb_name << "("
+          << "'@0/@1',ymc_" << bb_name
           << ",predmc_" << bb_name
           << ")" << flush;
       w_.factory(oss.str().c_str());
@@ -935,19 +963,32 @@ void WorkspaceGenerator::AddPdfs(const Block &block){
       string null_name = "pdf_null"+bb_name;
       string alt_name = "pdf_alt"+bb_name;
       w_.factory(("sum::nexp"+bb_name+"(nbkg"+bb_name+",nsig"+bb_name+")").c_str());
-      if(use_r4_ || (!Contains(bb_name, "hig_3b") && !Contains(bb_name, "hig_4b"))){
+      if(use_r4_ || (!Contains(bin.Name(), "hig_3b") && !Contains(bin.Name(), "hig_4b"))){
         null_list += null_name;
         alt_list += alt_name;
-        w_.factory(("RooPoisson::pdf_null"+bb_name+"(nobs"+bb_name+",nbkg"+bb_name+")").c_str());
-        (static_cast<RooPoisson*>(w_.pdf(null_name.c_str())))->setNoRounding();
-        w_.factory(("RooPoisson::pdf_alt"+bb_name+"(nobs"+bb_name+",nexp"+bb_name+")").c_str());
-        (static_cast<RooPoisson*>(w_.pdf(alt_name.c_str())))->setNoRounding();
+	AddPoisson("pdf_null"+bb_name, "nobs"+bb_name, "nbkg"+bb_name, false);
+	AddPoisson("pdf_alt"+bb_name, "nobs"+bb_name, "nexp"+bb_name, false);
         is_first = false;
       }
     }
   }
   w_.factory(("PROD:pdf_null_BLK_"+block.Name()+"("+null_list+")").c_str());
   w_.factory(("PROD:pdf_alt_BLK_"+block.Name()+"("+alt_list+")").c_str());
+}
+
+void WorkspaceGenerator::AddDebug(const Block &block){
+  if(print_level_ >= PrintLevel::everything) DBG(block);
+  const auto &bins = block.Bins();
+  for(size_t iy = 1; iy < bins.size(); ++iy){
+    for(size_t ix = 1; ix < bins.at(iy).size(); ++ix){
+      const auto &r1 = "BLK_"+block.Name()+"_BIN_"+bins.at(0).at(0).Name();
+      const auto &r2 = "BLK_"+block.Name()+"_BIN_"+bins.at(0).at(ix).Name();
+      const auto &r3 = "BLK_"+block.Name()+"_BIN_"+bins.at(iy).at(0).Name();
+      const auto &r4 = "BLK_"+block.Name()+"_BIN_"+bins.at(iy).at(ix).Name();
+      w_.factory(("expr::syskappa_"+r4+"('(@0*@1)/(@2*@3)',nbkg_"+r4+",nbkg_"+r1+",nbkg_"+r2+",nbkg_"+r3+")").c_str());
+      w_.factory(("expr::nosyskappa_"+r4+"('(@0*@1)/(@2*@3)',ymc_"+r4+",ymc_"+r1+",ymc_"+r2+",ymc_"+r3+")").c_str());
+    }
+  }
 }
 
 void WorkspaceGenerator::AddDummyNuisance(){
@@ -1022,6 +1063,25 @@ void WorkspaceGenerator::AddModels(){
 
   w_.import(model_config);
   w_.import(model_config_bonly);
+}
+
+void WorkspaceGenerator::AddPoisson(const string &pdf_name,
+				    const string &n_name,
+				    const string &mu_name,
+				    bool allow_approx){
+  RooAbsReal *v_mu = w_.var(mu_name.c_str());
+  if(!v_mu) v_mu = w_.function(mu_name.c_str());
+  if(!v_mu) v_mu = w_.var(n_name.c_str());
+  if(!v_mu) v_mu = w_.function(n_name.c_str());
+  double mu = v_mu->getVal();
+  if(mu <= 50. || !allow_approx){
+    w_.factory(("RooPoisson::"+pdf_name+"("+n_name+","+mu_name+")").c_str());
+    (static_cast<RooPoisson*>(w_.pdf(pdf_name.c_str())))->setNoRounding();
+    (static_cast<RooPoisson*>(w_.pdf(pdf_name.c_str())))->protectNegativeMean();
+  }else{
+    w_.factory(("expr::sqrt_"+mu_name+"('sqrt(@0)',"+mu_name+")").c_str());
+    w_.factory(("RooGaussian::"+pdf_name+"("+n_name+","+mu_name+",sqrt_"+mu_name+")").c_str());
+  }
 }
 
 ostream & operator<<(ostream& stream, const WorkspaceGenerator &wg){
