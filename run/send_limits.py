@@ -40,6 +40,7 @@ for file in inputfiles:
     fexe.write("cd ~/cmssw/stats/CMSSW_7_4_14/src/ \n")
     fexe.write("eval `scramv1 runtime -sh` \n")
     fexe.write("cd ~/code/stats_higgs ; \n\n")
+  fexe.write("./python/run_combine.py "+infolder+'/'+file+' --full_fit --overwrite\n')
   fexe.write("./run/scan_point.exe -f "+infolder+'/'+file+' >> txt/limits_'+model+'_'+str(ijob)+'.txt\n')
   if ifile % files_job == 0 or ifile == len(inputfiles): 
     fexe.close()
