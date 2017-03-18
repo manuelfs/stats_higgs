@@ -181,7 +181,7 @@ int main(int argc, char *argv[]){
   Cut *pbaseline(&baseline);
   set<Block> *pblocks(&blocks_abcd);
 
-  string sysfolder = "/net/cms27/cms27r0/babymaker/sys/2017_02_26/TChiHH/";
+  string sysfolder = "/net/cms27/cms27r0/babymaker/sys/2017_03_17/TChiHH/";
   if(sysfile=="default") sysfile = sysfolder+"/sys_SMS-TChiHH_mGluino-"+to_string(mglu)+"_mLSP-1_35p9ifb.txt";
   
   // If systematic file does not exist, complain

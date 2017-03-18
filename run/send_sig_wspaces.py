@@ -10,7 +10,7 @@ import time
 
 # Setting folders
 model = "TChiHH"
-ntu_date = "2017_02_26"
+ntu_date = "2017_03_17"
 lumi = "35.9"
 
 lumi_s = lumi.replace(".","p")
