@@ -77,7 +77,6 @@ int main(int argc, char *argv[]){
 
   string w_name("higgsCombineTest.MaxLikelihoodFit.mH120.root");
   w_name = workdir+'/'+w_name;
-  w_name = "wspace_TChiHH_mGluino-1000_mLSP-1_xsecNom_nbTTML_lumi35p9_sig0_higgsCombine.root";
   TFile w_file(w_name.c_str(),"read");
   if(!w_file.IsOpen()) ERROR("File "+w_name+" not produced");
   RooWorkspace *w = static_cast<RooWorkspace*>(w_file.Get(name_wspace.c_str()));
@@ -85,7 +84,6 @@ int main(int argc, char *argv[]){
 
   string fit_name = "mlfit.root";
   string full_fit_name = workdir+'/'+fit_name;
-  full_fit_name = "wspace_TChiHH_mGluino-1000_mLSP-1_xsecNom_nbTTML_lumi35p9_sig0_mlfit.root";
   TFile fit_file(full_fit_name.c_str(),"read");
   if(!fit_file.IsOpen()) ERROR("Could not open "+full_fit_name);
   RooFitResult *fit_b = static_cast<RooFitResult*>(fit_file.Get("fit_b"));

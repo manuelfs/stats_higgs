@@ -75,7 +75,7 @@ int main(int argc, char *argv[]){
     command
       << "combine -M ProfileLikelihood --significance --expectSignal=1 --verbose=999999 --rMin=-10. --uncapped=1 " << GetBaseName(file_name)
       << " < /dev/null &> signif_obs.log; "
-      << "combine -M ProfileLikelihood --significance --expectSignal=1 -t -1 --verbose=999999 --rMin=-10. --uncapped=1 " << GetBaseName(file_name)
+      << "combine -M ProfileLikelihood --significance --expectSignal=1 -t -1 --verbose=999999 --rMin=-10. --uncapped=1 --toysFreq " << GetBaseName(file_name)
       << " < /dev/null &> signif_exp.log; ";
   }
   command << flush;
