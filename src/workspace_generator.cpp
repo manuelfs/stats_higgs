@@ -300,11 +300,15 @@ void WorkspaceGenerator::UpdateWorkspace(){
     AddData(block);
     AddMCYields(block);
     AddMCPdfs(block);
-    AddMCProcessSums(block);
-    AddBackgroundFractions(block);
+    if(do_mc_kappa_correction_) {
+      AddMCProcessSums(block);
+      AddBackgroundFractions(block);
+    }
     AddABCDParameters(block);
-    AddRawBackgroundPredictions(block);
-    if(do_mc_kappa_correction_) AddKappas(block);
+    if(do_mc_kappa_correction_) {
+      AddRawBackgroundPredictions(block);
+      AddKappas(block);
+    }
     AddFullBackgroundPredictions(block);
     AddSignalPredictions(block);
     AddPdfs(block);
@@ -392,23 +396,23 @@ void WorkspaceGenerator::ReadSystematicsFile(){
           for(const auto &bin: vbin){
             if(bin.Name() != clean_line) continue;
             for(const auto &prc: process_list){
-	      float syst(atof(line.at(1).c_str()));
+              float syst(atof(line.at(1).c_str()));
               if(isnan(syst)){
-		DBG("Systematic " << this_systematic.Name() << " is NaN for bin "
-		    << bin.Name() << ", process " << prc.Name());
-		syst = 0.;
-	      }
+                DBG("Systematic " << this_systematic.Name() << " is NaN for bin "
+                    << bin.Name() << ", process " << prc.Name());
+                syst = 0.;
+              }
               if(isinf(syst)){
-		DBG("Systematic " << this_systematic.Name() << " is infinite for bin "
-		    << bin.Name() << ", process " << prc.Name());
-		if(syst>0.){
-		  syst = 1.;
-		}else{
-		  syst = -1.;
-		}
-	      }
+                DBG("Systematic " << this_systematic.Name() << " is infinite for bin "
+                    << bin.Name() << ", process " << prc.Name());
+                if(syst>0.){
+                  syst = 1.;
+                }else{
+                  syst = -1.;
+                }
+              }
               if(syst>=0) this_systematic.Strength(bin, prc) = log(1+syst);
-	      else this_systematic.Strength(bin, prc) = -log(1+fabs(syst));
+              else this_systematic.Strength(bin, prc) = -log(1+fabs(syst));
               found = true;
             }
 
@@ -592,11 +596,11 @@ void WorkspaceGenerator::AddData(const Block &block){
           gps += GetYield(bin, bkg);
         }
         // Injecting signal
-	if(inject_other_signal_){
-	  gps += sig_strength_*GetYield(bin, injection_);
-	}else{
-	  gps += sig_strength_*GetYield(bin, signal_);
-	}
+        if(inject_other_signal_){
+          gps += sig_strength_*GetYield(bin, injection_);
+        }else{
+          gps += sig_strength_*GetYield(bin, signal_);
+        }
       }else{
         gps = GetYield(bin, data_);
       }
@@ -740,11 +744,12 @@ void WorkspaceGenerator::AddMCYields(const Block & block){
     for(const auto &bin: vbin){
       string bb_name = "BLK_"+block.Name()+"_BIN_"+bin.Name();
       ostringstream oss;
-      auto all_prcs = backgrounds_;
+      std::set<Process> all_prcs = {};
+      if (do_mc_kappa_correction_) all_prcs = backgrounds_;
       Append(all_prcs, signal_);
       for(const auto &bkg: all_prcs){
         GammaParams gp = GetYield(bin, bkg);
-	if(Contains(bkg.Name(), "sig")) gp *= sig_xsec_f_;
+        if(Contains(bkg.Name(), "sig")) gp *= sig_xsec_f_;
         string bbp_name = bb_name + "_PRC_"+bkg.Name();
         oss.str("");
         oss << "nobsmc_" << bbp_name << flush;
@@ -777,11 +782,12 @@ void WorkspaceGenerator::AddMCPdfs(const Block &block){
   string factory_string = "PROD::pdf_mc_"+block.Name()+"(";
   for(const auto &vbin: block.Bins()){
     for(const auto &bin: vbin){
-      auto all_prcs = backgrounds_;
+      std::set<Process> all_prcs = {};
+      if (do_mc_kappa_correction_) all_prcs = backgrounds_;
       Append(all_prcs, signal_);
       for(const auto &bkg: all_prcs){
         string bbp_name = "BLK_"+block.Name()+"_BIN_"+bin.Name()+"_PRC_"+bkg.Name();
-	AddPoisson("pdf_mc_"+bbp_name, "nobsmc_"+bbp_name, "nmc_"+bbp_name, gaus_approx_);
+        AddPoisson("pdf_mc_"+bbp_name, "nobsmc_"+bbp_name, "nmc_"+bbp_name, gaus_approx_);
         if(first) first = false;
         else factory_string += ",";
         factory_string += "pdf_mc_"+bbp_name;
@@ -895,29 +901,65 @@ void WorkspaceGenerator::AddMCKappa(const Block &block){
 
 void WorkspaceGenerator::AddFullBackgroundPredictions(const Block &block){
   if(print_level_ >= PrintLevel::everything) DBG(block);
-  for(const auto &vbin: block.Bins()){
-    for(const auto &bin: vbin){
-      string bb_name = "BLK_"+block.Name()+"_BIN_"+bin.Name();
-      ostringstream oss;
-      oss << "prod::nbkg_" << bb_name << "("
-          << "nbkg_raw_" << bb_name;
-      for(const auto &syst: bin.Systematics()){
-        if(do_systematics_ && syst.Name().substr(0,6) != "dilep_"){
-          oss << "," << syst.Name() << "_" << bb_name;
-        }
-      }
-      if(do_systematics_){
-        for(const auto &prc: backgrounds_){
-          for(const auto &syst: prc.Systematics()){
-            oss << "," << syst.Name() << "_BIN_" << bin.Name() << "_PRC_" << prc.Name();
+
+  if (do_mc_kappa_correction_) {
+    for(const auto &vbin: block.Bins()){
+      for(const auto &bin: vbin){
+        string bb_name = "BLK_"+block.Name()+"_BIN_"+bin.Name();
+        ostringstream oss;
+        oss << "prod::nbkg_" << bb_name << "("
+            << "nbkg_raw_" << bb_name;
+        for(const auto &syst: bin.Systematics()){
+          if(do_systematics_ && syst.Name().substr(0,6) != "dilep_"){
+            oss << "," << syst.Name() << "_" << bb_name;
           }
         }
+        if(do_systematics_){
+          for(const auto &prc: backgrounds_){
+            for(const auto &syst: prc.Systematics()){
+              oss << "," << syst.Name() << "_BIN_" << bin.Name() << "_PRC_" << prc.Name();
+            }
+          }
+        }
+        if(do_mc_kappa_correction_){
+          oss << ",kappamc_" << bb_name;
+        }
+        oss << ")" << flush;
+        w_.factory(oss.str().c_str());
       }
-      if(do_mc_kappa_correction_){
-        oss << ",kappamc_" << bb_name;
+    }
+  } else {
+    BlockYields by(block, backgrounds_, baseline_, yields_);
+    size_t max_row = by.MaxRow();
+    size_t max_col = by.MaxCol();
+    for(size_t irow = 0; irow < block.Bins().size(); ++irow){
+      for(size_t icol = 0; icol < block.Bins().at(irow).size(); ++icol){
+        const Bin &bin = block.Bins().at(irow).at(icol);
+        string bb_name = "BLK_"+block.Name()+"_BIN_"+bin.Name();
+        string prod_name = "nbkg_"+bb_name;
+        string factory_string = "prod::"+prod_name+"(rscale_BLK_"+block.Name();
+        if(icol != max_col){
+          ostringstream oss;
+          oss << ",rx" << (icol+1) << (max_col+1) << "_BLK_" << block.Name() << flush;
+          factory_string += oss.str();
+        }
+        if(irow != max_row){
+          ostringstream oss;
+          oss << ",ry" << (irow+1) << (max_row+1) << "_BLK_" << block.Name() << flush;
+          factory_string += oss.str();
+        }
+        //fixme
+        if(do_systematics_){
+          for(const auto &syst: free_systematics_){
+            if(syst.HasEntry(bin, *backgrounds_.begin())){
+              string full_name = syst.Name()+"_BIN_"+bin.Name()+"_PRC_"+backgrounds_.begin()->Name();
+              factory_string += (","+full_name);
+            }
+          }
+        }
+        factory_string += ")";
+        w_.factory(factory_string.c_str());
       }
-      oss << ")" << flush;
-      w_.factory(oss.str().c_str());
     }
   }
 }
@@ -966,8 +1008,8 @@ void WorkspaceGenerator::AddPdfs(const Block &block){
       if(use_r4_ || (!Contains(bin.Name(), "hig_3b") && !Contains(bin.Name(), "hig_4b"))){
         null_list += null_name;
         alt_list += alt_name;
-	AddPoisson("pdf_null"+bb_name, "nobs"+bb_name, "nbkg"+bb_name, false);
-	AddPoisson("pdf_alt"+bb_name, "nobs"+bb_name, "nexp"+bb_name, false);
+        AddPoisson("pdf_null"+bb_name, "nobs"+bb_name, "nbkg"+bb_name, false);
+        AddPoisson("pdf_alt"+bb_name, "nobs"+bb_name, "nexp"+bb_name, false);
         is_first = false;
       }
     }
@@ -986,7 +1028,7 @@ void WorkspaceGenerator::AddDebug(const Block &block){
       const auto &r3 = "BLK_"+block.Name()+"_BIN_"+bins.at(iy).at(0).Name();
       const auto &r4 = "BLK_"+block.Name()+"_BIN_"+bins.at(iy).at(ix).Name();
       w_.factory(("expr::syskappa_"+r4+"('(@0*@1)/(@2*@3)',nbkg_"+r4+",nbkg_"+r1+",nbkg_"+r2+",nbkg_"+r3+")").c_str());
-      w_.factory(("expr::nosyskappa_"+r4+"('(@0*@1)/(@2*@3)',ymc_"+r4+",ymc_"+r1+",ymc_"+r2+",ymc_"+r3+")").c_str());
+      if (do_mc_kappa_correction_) w_.factory(("expr::nosyskappa_"+r4+"('(@0*@1)/(@2*@3)',ymc_"+r4+",ymc_"+r1+",ymc_"+r2+",ymc_"+r3+")").c_str());
     }
   }
 }
@@ -1038,8 +1080,8 @@ void WorkspaceGenerator::DefineParameterSet(const string &set_name,
   }else{
     w_.defineSet(set_name.c_str(), var_names.cbegin()->c_str());
     for(auto name = ++var_names.cbegin();
-	name != var_names.cend();
-	++name){
+        name != var_names.cend();
+        ++name){
       w_.extendSet(set_name.c_str(), name->c_str());
     }
   }
@@ -1066,9 +1108,9 @@ void WorkspaceGenerator::AddModels(){
 }
 
 void WorkspaceGenerator::AddPoisson(const string &pdf_name,
-				    const string &n_name,
-				    const string &mu_name,
-				    bool allow_approx){
+                                    const string &n_name,
+                                    const string &mu_name,
+                                    bool allow_approx){
   RooAbsReal *v_mu = w_.var(mu_name.c_str());
   if(!v_mu) v_mu = w_.function(mu_name.c_str());
   if(!v_mu) v_mu = w_.var(n_name.c_str());

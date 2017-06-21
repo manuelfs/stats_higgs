@@ -63,27 +63,27 @@ int main(int argc, char *argv[]){
   
   //Define processes. Try to minimize splitting
   string stitch_cuts("stitch_met&&pass");
-  Process ttbar{"ttbar", {
+  Process proc_bkg{"bkg", {
       {foldermc+"/*_TTJets*Lep*.root/tree"}
     },stitch_cuts};
 
   Process other{"other", {
       {foldermc+"/*_TTW*.root/tree"},
-	{foldermc+"/*_TTZ*.root/tree"},
-	  {foldermc+"/*_TTGJets*.root/tree"},
-	    {foldermc+"/*ttHJetTobb*.root/tree"},
-	      {foldermc+"/*_TTTT*.root/tree"},
-		{foldermc+"/*_ZJet*.root/tree"},
-		  {foldermc+"/*_WJetsToLNu*.root/tree"},
-		    {foldermc+"/*DYJetsToLL*.root/tree"},
-		      {foldermc+"/*_ST_*.root/tree"},
-			{foldermc+"/*QCD_HT*0_Tune*.root/tree"},
-			  {foldermc+"/*QCD_HT*Inf_Tune*.root/tree"},
-			    {foldermc+"/*_WH_HToBB*.root/tree"},
-			      {foldermc+"/*_ZH_HToBB*.root/tree"},
-				{foldermc+"/*_WWTo*.root/tree"},
-				  {foldermc+"/*_WZ*.root/tree"},
-				    {foldermc+"/*_ZZ*.root/tree"}
+	// {foldermc+"/*_TTZ*.root/tree"},
+	 //  {foldermc+"/*_TTGJets*.root/tree"},
+	 //    {foldermc+"/*ttHJetTobb*.root/tree"},
+	 //      {foldermc+"/*_TTTT*.root/tree"},
+		// {foldermc+"/*_ZJet*.root/tree"},
+		//   {foldermc+"/*_WJetsToLNu*.root/tree"},
+		//     {foldermc+"/*DYJetsToLL*.root/tree"},
+		//       {foldermc+"/*_ST_*.root/tree"},
+		// 	{foldermc+"/*QCD_HT*0_Tune*.root/tree"},
+		// 	  {foldermc+"/*QCD_HT*Inf_Tune*.root/tree"},
+		// 	    {foldermc+"/*_WH_HToBB*.root/tree"},
+		// 	      {foldermc+"/*_ZH_HToBB*.root/tree"},
+		// 		{foldermc+"/*_WWTo*.root/tree"},
+		// 		  {foldermc+"/*_WZ*.root/tree"},
+		// 		    {foldermc+"/*_ZZ*.root/tree"}
     },stitch_cuts};
     
   Process signal{"signal", {
@@ -98,7 +98,7 @@ int main(int argc, char *argv[]){
     }, data_cuts, true};
 
   //Make list of all backgrounds. Backgrounds assumed to be orthogonal
-  set<Process> backgrounds{ttbar, other};
+  set<Process> backgrounds{proc_bkg};
 
   //Baseline selection applied to all bins and processes
   string basestr = "hig_drmax<2.2&&ntks==0&&njets>=4&&njets<=5&&!low_dphi&&nvleps==0&&pass_ra2_badmu&&met/met_calo<5";
@@ -132,12 +132,12 @@ int main(int argc, char *argv[]){
   Bin sbd_4b_met0{"sbd_4b_met0", cut4b+"&&"+cutsbd+cutmet0, blind_level>=BlindLevel::blinded};
   Bin hig_4b_met0{"hig_4b_met0", cut4b+"&&"+cuthig+cutmet0, blind_level>=BlindLevel::blinded};
 
-  Bin sbd_2b_met1{"sbd_2b_met1", cut2b+"&&"+cutsbd+cutmet1, blind_level>=BlindLevel::blinded};
-  Bin hig_2b_met1{"hig_2b_met1", cut2b+"&&"+cuthig+cutmet1, blind_level>=BlindLevel::blinded};
+  Bin sbd_2b_met1{"A", cut2b+"&&"+cutsbd+cutmet1, blind_level>=BlindLevel::blinded};
+  Bin hig_2b_met1{"B", cut2b+"&&"+cuthig+cutmet1, blind_level>=BlindLevel::blinded};
   Bin sbd_3b_met1{"sbd_3b_met1", cut3b+"&&"+cutsbd+cutmet1, blind_level>=BlindLevel::blinded};
   Bin hig_3b_met1{"hig_3b_met1", cut3b+"&&"+cuthig+cutmet1, blind_level>=BlindLevel::blinded};
-  Bin sbd_4b_met1{"sbd_4b_met1", cut4b+"&&"+cutsbd+cutmet1, blind_level>=BlindLevel::blinded};
-  Bin hig_4b_met1{"hig_4b_met1", cut4b+"&&"+cuthig+cutmet1, blind_level>=BlindLevel::blinded};
+  Bin sbd_4b_met1{"C", cut4b+"&&"+cutsbd+cutmet1, blind_level>=BlindLevel::blinded};
+  Bin hig_4b_met1{"D", cut4b+"&&"+cuthig+cutmet1, blind_level>=BlindLevel::blinded};
 
   Bin sbd_2b_met2{"sbd_2b_met2", cut2b+"&&"+cutsbd+cutmet2, blind_level>=BlindLevel::blinded};
   Bin hig_2b_met2{"hig_2b_met2", cut2b+"&&"+cuthig+cutmet2, blind_level>=BlindLevel::blinded};
@@ -157,10 +157,11 @@ int main(int argc, char *argv[]){
   set<Block> blocks_abcd;
 
   blocks_abcd = {
-    {"met0", {{sbd_2b_met0, hig_2b_met0}, {sbd_3b_met0, hig_3b_met0}, {sbd_4b_met0, hig_4b_met0}}},
-    {"met1", {{sbd_2b_met1, hig_2b_met1}, {sbd_3b_met1, hig_3b_met1}, {sbd_4b_met1, hig_4b_met1}}},
-    {"met2", {{sbd_2b_met2, hig_2b_met2}, {sbd_3b_met2, hig_3b_met2}, {sbd_4b_met2, hig_4b_met2}}},
-    {"met3", {{sbd_2b_met3, hig_2b_met3}, {sbd_3b_met3, hig_3b_met3}, {sbd_4b_met3, hig_4b_met3}}}
+    // {"met0", {{sbd_2b_met0, hig_2b_met0}, {sbd_3b_met0, hig_3b_met0}, {sbd_4b_met0, hig_4b_met0}}},
+    // {"met1", {{sbd_2b_met1, hig_2b_met1}, {sbd_3b_met1, hig_3b_met1}, {sbd_4b_met1, hig_4b_met1}}},
+    {"met1", {{sbd_2b_met1, hig_2b_met1}, {sbd_4b_met1, hig_4b_met1}}},
+    // {"met2", {{sbd_2b_met2, hig_2b_met2}, {sbd_3b_met2, hig_3b_met2}, {sbd_4b_met2, hig_4b_met2}}},
+    // {"met3", {{sbd_2b_met3, hig_2b_met3}, {sbd_3b_met3, hig_3b_met3}, {sbd_4b_met3, hig_4b_met3}}}
     // {"met0", {{sbd_2b_met0, sbd_3b_met0, sbd_4b_met0},
     // 	      {hig_2b_met0, hig_3b_met0, hig_4b_met0}}},
     // {"met1", {{sbd_2b_met1, sbd_3b_met1, sbd_4b_met1},
@@ -181,7 +182,7 @@ int main(int argc, char *argv[]){
   Cut *pbaseline(&baseline);
   set<Block> *pblocks(&blocks_abcd);
 
-  string sysfolder = "/net/cms27/cms27r0/babymaker/sys/2017_03_17/TChiHH/";
+  string sysfolder = "";///net/cms27/cms27r0/babymaker/sys/2017_05_10/TChiHH/";
   if(sysfile=="default") sysfile = sysfolder+"/sys_SMS-TChiHH_mGluino-"+to_string(mglu)+"_mLSP-1_35p9ifb.txt";
   
   // If systematic file does not exist, complain
