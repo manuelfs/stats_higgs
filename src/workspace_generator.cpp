@@ -312,10 +312,10 @@ void WorkspaceGenerator::UpdateWorkspace(){
     AddFullBackgroundPredictions(block);
     AddSignalPredictions(block);
     AddPdfs(block);
-    AddDebug(block);
+    // AddDebug(block);
   }
 
-  AddDummyNuisance();
+  // AddDummyNuisance();
   AddFullPdf();
   AddParameterSets();
   AddModels();
@@ -581,7 +581,13 @@ void WorkspaceGenerator::AddSystematicsGenerators(){
 void WorkspaceGenerator::AddSystematicGenerator(const string &name){
   if(print_level_ >= PrintLevel::everything) DBG(name);
   if(systematics_.find(name) != systematics_.end()) return;
-  w_.factory(("RooGaussian::constraint_"+name+"("+name+"[0.,-10.,10.],0.,1.)").c_str());
+  ostringstream oss;
+  oss.str("");
+  oss << "demo_sys_in" << flush;
+  oss << "[0.]" << flush;
+  w_.factory(oss.str().c_str());
+  w_.factory(("RooGaussian::constraint_"+name+"("+name+"[0.,-10.,10.],demo_sys_in,1.)").c_str());
+  // w_.factory(("RooGaussian::constraint_"+name+"("+name+"[0.,-10.,10.],strength_"+name+"_BIN_C_PRC_bkg[0.41],1.)").c_str());
   Append(nuisances_, name);
   Append(systematics_, name);
 }
@@ -640,8 +646,8 @@ void WorkspaceGenerator::AddABCDParameters(const Block &block){
   ryss << "sum::rynorm_BLK_" << block.Name() << "(1.,";
   ostringstream oss;
   oss << "norm_BLK_" << block.Name() << flush;
-  Append(nuisances_, oss.str());
-  oss << "[" << max(1., 0.8*by.Total().Yield()) << ",0.,"
+  // Append(nuisances_, oss.str());
+  oss << "[" << max(1., by.Total().Yield()) << ",0.,"
       << max(5.*by.Total().Yield(), 20.) << "]" << flush;
   w_.factory(oss.str().c_str());
   for(size_t irow = 0; irow < by.RowSums().size(); ++irow){
@@ -649,7 +655,7 @@ void WorkspaceGenerator::AddABCDParameters(const Block &block){
     oss.str("");
     oss << "ry" << (irow+1) << (by.MaxRow()+1) << "_BLK_" << block.Name() << flush;
     ryss << "," << oss.str();
-    Append(nuisances_, oss.str());
+    // Append(nuisances_, oss.str());
     oss << "[" << by.RowSums().at(irow).Yield()/by.RowSums().at(by.MaxRow()).Yield()
         << ",0.,10.]" << flush;
     w_.factory(oss.str().c_str());
@@ -661,7 +667,7 @@ void WorkspaceGenerator::AddABCDParameters(const Block &block){
     oss.str("");
     oss << "rx" << (icol+1) << (by.MaxCol()+1) << "_BLK_" << block.Name() << flush;
     rxss << "," << oss.str();
-    Append(nuisances_, oss.str());
+    // Append(nuisances_, oss.str());
     oss << "[" << by.ColSums().at(icol).Yield()/by.ColSums().at(by.MaxCol()).Yield()
         << ",0.,10.]" << flush;
     w_.factory(oss.str().c_str());
@@ -948,7 +954,6 @@ void WorkspaceGenerator::AddFullBackgroundPredictions(const Block &block){
           oss << ",ry" << (irow+1) << (max_row+1) << "_BLK_" << block.Name() << flush;
           factory_string += oss.str();
         }
-        //fixme
         if(do_systematics_){
           for(const auto &syst: free_systematics_){
             if(syst.HasEntry(bin, *backgrounds_.begin())){
@@ -1040,11 +1045,17 @@ void WorkspaceGenerator::AddDummyNuisance(){
 
 void WorkspaceGenerator::AddFullPdf(){
   if(print_level_ >= PrintLevel::everything) DBG("");
-  string null_list = "pdf_dummy_nuisance";
-  string alt_list = "pdf_dummy_nuisance";
+  // string null_list = "pdf_dummy_nuisance";
+  // string alt_list = "pdf_dummy_nuisance";
+  string null_list = "";
+  string alt_list = "";
+  bool is_first = true;
   for(const auto &block: blocks_){
-    null_list += (",pdf_null_BLK_"+block.Name());
-    alt_list += (",pdf_alt_BLK_"+block.Name());
+    // null_list += (",pdf_null_BLK_"+block.Name());
+    // alt_list += (",pdf_alt_BLK_"+block.Name());
+    null_list += ((is_first ? ",pdf_null_BLK_":"pdf_null_BLK_")+block.Name());
+    alt_list += ((is_first ? ",pdf_alt_BLK_":",pdf_alt_BLK_")+block.Name());
+    is_first = false;
   }
   if(do_systematics_ || do_dilepton_){
     for(const auto &syst: systematics_){
@@ -1063,9 +1074,29 @@ void WorkspaceGenerator::AddFullPdf(){
 void WorkspaceGenerator::AddParameterSets(){
   if(print_level_ >= PrintLevel::everything) DBG("");
   DefineParameterSet("POI", poi_);
-  DefineParameterSet("nuisances", nuisances_);
-  DefineParameterSet("observables", observables_);
-  DefineParameterSet("globalObservables", set<string>());
+  set<string> tmp_nuis = {
+    "demo_sys",
+    "nmc_BLK_met1_BIN_A_PRC_signal",
+    "nmc_BLK_met1_BIN_B_PRC_signal",
+    "nmc_BLK_met1_BIN_C_PRC_signal",
+    "nmc_BLK_met1_BIN_D_PRC_signal"
+  };
+  set<string> tmp_globs = {
+    "demo_sys_in",
+    "nobsmc_BLK_met1_BIN_A_PRC_signal",
+    "nobsmc_BLK_met1_BIN_B_PRC_signal",
+    "nobsmc_BLK_met1_BIN_C_PRC_signal",
+    "nobsmc_BLK_met1_BIN_D_PRC_signal"
+  };
+  set<string> tmp_obs = {
+    "nobs_BLK_met1_BIN_A",
+    "nobs_BLK_met1_BIN_B",
+    "nobs_BLK_met1_BIN_C",
+    "nobs_BLK_met1_BIN_D"
+  };
+  DefineParameterSet("nuisances", tmp_nuis);//
+  DefineParameterSet("observables", tmp_obs);//
+  DefineParameterSet("globalObservables", tmp_globs);//
   auto xxx = w_.set("observables");
   RooDataSet data_obs{"data_obs", "data_obs", *xxx};
   data_obs.add(*w_.set("observables"));
