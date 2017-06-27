@@ -14,8 +14,8 @@ ntu_date = "2017_03_17"
 lumi = "35.9"
 
 lumi_s = lumi.replace(".","p")
-infolder  = "/net/cms27/cms27r0/babymaker/babies/"+ntu_date+"/"+model+"/merged_higmc_higtight/"
-outfolder = "/net/cms27/cms27r0/babymaker/wspaces/"+ntu_date+"/"+model+"_lumi"+lumi_s+"/" 
+infolder  = "/net/cms2/cms2r0/babymaker/babies/"+ntu_date+"/"+model+"/merged_higmc_higtight/"
+outfolder = "/net/cms2/cms2r0/babymaker/wspaces/2017_06_26/"+model+"_lumi"+lumi_s+"/" 
 runfolder = outfolder+"run/" 
 if not os.path.exists(runfolder):
   os.system("mkdir -p "+runfolder)
@@ -40,7 +40,7 @@ for file in inputfiles:
   fexe.write("./run/wspace_sig.exe -f "+infolder+'/'+file+' -o '+outfolder+' -l '+lumi+'\n')
   if ifile % files_job == 0 or ifile == len(inputfiles): 
     fexe.close()
-    cmd = "JobSubmit.csh ./run/wrapper.sh "+exename
+    cmd = "JobSubmit.csh ./run/wrapper.sh CMSSW_7_4_14 "+exename
     #print cmd
     os.system(cmd)
 

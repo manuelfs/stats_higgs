@@ -25,14 +25,18 @@ using namespace std;
 namespace{
   string file_name = "";
   bool do_signif = true;
+  bool do_cards = false;
 }
 
 int main(int argc, char *argv[]){
   GetOptions(argc, argv);
   if(file_name == "") ERROR("Must supply an input file name");
+  if (do_cards) do_signif = false;
 
-  TFile file(file_name.c_str(), "read");
-  if(!file.IsOpen()) ERROR("Could not open "+file_name);
+  if (!do_cards) {
+    TFile file(file_name.c_str(), "read");
+    if(!file.IsOpen()) ERROR("Could not open "+file_name);
+  }
 
   string model = "T1tttt";
   if(Contains(file_name, "T5tttt")) model = "T5tttt";
@@ -57,11 +61,13 @@ int main(int argc, char *argv[]){
   string done = " < /dev/null &> /dev/null; ";
   done = "; ";
   //Need to get modify these file names
-  string up_file_name = file_name;   ReplaceAll(up_file_name, "xsecNom", "xsecUp");
-  string down_file_name = file_name; ReplaceAll(down_file_name, "xsecNom", "xsecDown");
+  string up_file_name = file_name;
+  if (!do_cards) ReplaceAll(up_file_name, "xsecNom", "xsecUp");
+  string down_file_name = file_name;
+  if (!do_cards) ReplaceAll(down_file_name, "xsecNom", "xsecDown");
   command
     << "export origdir=$(pwd); "
-    << "cd ~/cmssw/CMSSW_7_4_14/src; "
+    << (do_cards ? "cd ~/cmssw/CMSSW_7_4_14/src; " : "cd ~/cmssw/CMSSW_7_4_7/src; ")
     << "eval `scramv1 runtime -sh`; "
     << "cd $origdir; "
     << "ln -s $(readlink -f " << file_name << ") " << workdir << done
@@ -221,6 +227,7 @@ void GetOptions(int argc, char *argv[]){
     static struct option long_options[] = {
       {"filename", required_argument, 0, 'f'},
       {"signif", required_argument, 0, 's'},
+      {"cards", no_argument, 0, 0},
       {0, 0, 0, 0}
     };
 
@@ -236,6 +243,14 @@ void GetOptions(int argc, char *argv[]){
       break;
     case 's':
       do_signif = false;
+      break;
+    case 0:
+      optname = long_options[option_index].name;
+      if(optname == "cards"){
+        do_cards = true;
+      }else{
+        printf("Bad option! Found option name %s\n", optname.c_str());
+      }
       break;
     default:
       cerr << "Bad option! getopt_long returned character code " << static_cast<int>(opt) << endl;

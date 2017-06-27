@@ -10,15 +10,15 @@ fi
 tempfile=temp.log
 
 printf '\n'$rootfile'\n\n' 
-combine -M ProfileLikelihood --significance --expectSignal=1 $rootfile > $tempfile
-echo Observed `grep --color=always Significance $tempfile`
+combine -M ProfileLikelihood --significance --expectSignal=1 $rootfile  --toysFrequentist
+# echo Observed `grep --color=always Significance $tempfile`
 
-combine -M Asymptotic $rootfile > $tempfile
-grep --color=always "Observed Limit" $tempfile
-echo A posteriori `grep --color=always "Expected 16.0%" $tempfile`
-echo A posteriori `grep --color=always "Expected 50.0%" $tempfile`
-echo A posteriori `grep --color=always "Expected 84.0%" $tempfile`
-echo
+combine -M Asymptotic --toysFrequentist $rootfile 
+# grep --color=always "Observed Limit" $tempfile
+# echo A posteriori `grep --color=always "Expected 16.0%" $tempfile`
+# echo A posteriori `grep --color=always "Expected 50.0%" $tempfile`
+# echo A posteriori `grep --color=always "Expected 84.0%" $tempfile`
+# echo
 
 if (( "$#" > 1 ))
 then
